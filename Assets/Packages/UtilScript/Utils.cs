@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 
 public enum EScene
 {
@@ -18,9 +19,12 @@ public static class Utils
 
     #region Scene Management
     /// <summary>
-    /// 현재 씬 타입 반환
+    /// buildIndex 기반으로 현재 씬 타입 반환
     /// </summary>
-    public static EScene CurrentScene => Enum.TryParse(SceneManager.GetActiveScene().name, out EScene scene) ? scene : default;
+    public static EScene GetActiveScene()
+    {
+        return (EScene)SceneManager.GetActiveScene().buildIndex;
+    }
 
     /// <summary>
     /// 씬 전환
@@ -31,21 +35,97 @@ public static class Utils
     }
     #endregion
 
-    #region Game Object
+    #region Resource
     /// <summary>
     /// Resources에서 로딩
     /// </summary>
-    public static T Load<T>(string _resourceName) where T : UnityEngine.Object
+    public static T Load<T>(string resourceName) where T : UnityEngine.Object
     {
-        return Resources.Load<T>(_resourceName) ?? throw new Exception($"No Resource : {_resourceName}");
+        return Resources.Load<T>(resourceName) ?? throw new Exception($"No Resource : {resourceName}");
     }
+    #endregion
 
+    #region Game Object
     /// <summary>
     /// 게임 오브젝트의 레이어 확인
     /// </summary>
-    public static bool IsLayer(this GameObject contactedObject, string layerName)
+    public static bool IsLayer(GameObject contactedObject, string layerName)
     {
         return ((1 << contactedObject.layer) & (1 << LayerMask.NameToLayer(layerName))) != 0;
     }
+    #endregion
+
+    #region Transform
+    /// <summary>
+    /// 모든 자식 게임 오브젝트 파괴
+    /// </summary>
+    public static void DestoryAllChildren(Transform parent)
+    {
+        foreach (Transform child in parent)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+    }
+    #endregion
+
+    #region Time
+    /// <summary>
+    /// 초를 HH:MM:SS 형태로 반환
+    /// </summary>
+    public static string SecondsToHMS(float seconds)
+    {
+        if (seconds < 0)
+        {
+            return $"-{SecondsToHMS(-seconds)}";
+        }
+
+        int totalSeconds = Mathf.FloorToInt(seconds);
+
+        int hh = totalSeconds / 3600;
+        int mm = (totalSeconds % 3600) / 60;
+        int ss = totalSeconds % 60;
+
+        return $"{hh:D2}:{mm:D2}:{ss:D2}";
+    }
+
+    /// <summary>
+    /// 초를 MM:SS 형태로 반환
+    /// </summary>
+    public static string SecondsToMS(float seconds)
+    {
+        if (seconds < 0)
+        {
+            return $"-{SecondsToMS(-seconds)}";
+        }
+
+        int totalSeconds = Mathf.FloorToInt(seconds);
+        int mm = totalSeconds / 60;
+        int ss = totalSeconds % 60;
+        return $"{mm:D2}:{ss:D2}";
+    }
+    #endregion
+
+    #region Random
+    /// <summary>
+    /// min과 max 사이의 랜덤 정수 값
+    /// </summary>
+    public static int RandomInt(int min, int max)
+    {
+        return Random.Range(min, max);
+    }
+
+    /// <summary>
+    /// 랜덤 true or false
+    /// </summary>
+    public static bool RandomBool()
+    {
+        return Random.Range(0, 2) == 0;
+    }
+    #endregion
+
+    #region Math
+    #endregion
+
+    #region JSON
     #endregion
 }
