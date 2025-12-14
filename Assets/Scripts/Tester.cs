@@ -14,6 +14,16 @@ public class Tester : MonoBehaviour
 
     public GameObject target;
 
+    private void Start()
+    {
+        Utils.Log(Utils.RoundByStep(3.141592f, 0.1f));
+        Utils.Log(Utils.RoundByStep(3.141592f, 0.01f));
+        Utils.Log(Utils.RoundByStep(3.141592f, 0.001f));
+        Utils.Log(Utils.RoundByStep(3.141592f, 0.0001f));
+        Utils.Log(Utils.RoundByStep(3.141592f, 1));
+        Utils.Log(Utils.RoundByStep(3.141592f, 10));
+    }
+
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.F1))

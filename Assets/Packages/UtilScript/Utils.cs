@@ -171,7 +171,7 @@ public static class Utils
 
     #region Random
     /// <summary>
-    /// min과 max 사이의 랜덤 정수 값 (max 미포함)
+    /// min 이상 max 미만의 랜덤 정수 값
     /// </summary>
     public static int RandomInt(int min, int max)
     {
@@ -185,9 +185,60 @@ public static class Utils
     {
         return Random.Range(0, 2) == 0;
     }
+
+    /// <summary>
+    /// 랜덤 색상
+    /// </summary>
+    /// <param name="alphaValue">컬러 알파 값</param>
+    public static Color RandomColor(float alphaValue = 1f)
+    {
+        return new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f), alphaValue);
+    }
+    #endregion
+
+    #region Enumerate
+
     #endregion
 
     #region Math
+    /// <summary>
+    /// 반올림
+    /// </summary>
+    /// <param name="value">반올림할 값</param>
+    /// <param name="step">반올림 단위</param>
+    public static float RoundByStep(float value, float step)
+    {
+        if (step <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(step), "step must be greater than 0");
+
+        return (float)Math.Round(value / step, 0, MidpointRounding.AwayFromZero) * step;
+    }
+
+    /// <summary>
+    /// 올림
+    /// </summary>
+    /// <param name="value">올림할 값</param>
+    /// <param name="step">올림 단위</param>
+    public static float CeilByStep(float value, float step)
+    {
+        if (step <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(step), "step must be greater than 0");
+
+        return Mathf.Ceil(value / step) * step;
+    }
+
+    /// <summary>
+    /// 내림
+    /// </summary>
+    /// <param name="value">내림할 값</param>
+    /// <param name="step">내림 단위</param>
+    public static float FloorByStep(float value, float step)
+    {
+        if (step <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(step), "step must be greater than 0");
+
+        return Mathf.Floor(value / step) * step;
+    }
     #endregion
 
     #region JSON
