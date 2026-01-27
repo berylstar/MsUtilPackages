@@ -69,5 +69,27 @@ public static class Extensions
             list[randomIndex] = tempValue;
         }
     }
+
+    /// <summary>
+    /// 배열의 무작위 원소 가져오기
+    /// </summary>
+    public static T GetRandomElement<T>(this T[] array)
+    {
+        if (array == null || array.Length == 0)
+            return default;
+
+        return array[Utils.RandomRangeInt(0, array.Length)];
+    }
+
+    /// <summary>
+    /// 리스트의 무작위 원소 가져오기
+    /// </summary>
+    public static T GetRandomElement<T>(this List<T> list)
+    {
+        if (list == null || list.Count == 0)
+            return default;
+
+        return list[Utils.RandomRangeInt(0, list.Count)];
+    }
     #endregion
 }

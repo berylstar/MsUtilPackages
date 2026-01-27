@@ -173,8 +173,11 @@ public static class Utils
     /// <summary>
     /// min 이상 max 미만의 랜덤 정수 값
     /// </summary>
-    public static int RandomInt(int min, int max)
+    public static int RandomRangeInt(int min, int max)
     {
+        if (max <= min)
+            return min;
+
         return Random.Range(min, max);
     }
 
