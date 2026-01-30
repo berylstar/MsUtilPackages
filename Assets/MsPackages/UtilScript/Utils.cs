@@ -182,6 +182,35 @@ public static class Utils
     }
 
     /// <summary>
+    /// min 이상 max 미만의 중복되지 않는 랜덤 정수 값들
+    /// </summary>
+    public static List<int> RandomRangeIntList(int min, int max, int count)
+    {
+        int range = max - min;
+
+        if (range < 0)
+            return new List<int>();
+
+        if (count > range)
+            count = range;
+
+        List<int> results = new List<int>(range);
+        for (int i = min; i < max; i++)
+        {
+            results.Add(i);
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            int randomIndex = RandomRangeInt(i, results.Count);
+
+            (results[i], results[randomIndex]) = (results[randomIndex], results[i]);
+        }
+
+        return results.GetRange(0, count);
+    }
+
+    /// <summary>
     /// 랜덤 true or false
     /// </summary>
     public static bool RandomBool()
