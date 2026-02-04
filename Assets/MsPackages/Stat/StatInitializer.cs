@@ -1,16 +1,14 @@
 using System;
+using UnityEngine;
 
 [Serializable]
 public class StatInitializer<T> where T : IComparable<T>
 {
-    public StatData<T> statData;
-    public Stat<T> stat;
+    [SerializeField] private StatData<T> statData;
+    [field: SerializeField] public Stat<T> Stat { get; private set; }
 
     public void Initialize()
     {
-        if (stat == null)
-        {
-            stat = new Stat<T>(statData);
-        }
+        Stat = new Stat<T>(statData);
     }
 }

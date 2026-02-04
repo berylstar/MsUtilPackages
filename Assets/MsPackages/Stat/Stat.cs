@@ -7,10 +7,11 @@ using UnityEngine;
 /// </summary>
 public enum EStatType
 {
-    None = 0,
-
+    None        = 0,
+    MoveSpeed   = 1 << 0,
+    HP          = 1 << 1,
+    AP          = 1 << 2,
 }
-
 
 /// <summary>
 /// 스탯 제너릭 클래스
@@ -18,30 +19,51 @@ public enum EStatType
 [Serializable]
 public class Stat<T> where T : IComparable<T>
 {
-    [SerializeField, InspectorReadonly] private T _baseValue;        // 기본값
-    [SerializeField, InspectorReadonly] private T _minValue;         // 최솟값
-    [SerializeField, InspectorReadonly] private T _maxValue;         // 최댓값
+    [SerializeField, InspectorReadonly] private T _baseValue;
+    /// <summary>
+    /// 기본 값 - 수정자를 적용하지 않은 기본 값
+    /// </summary>
+    public T BaseValue => _baseValue;
 
-    [Space(10)]
-    [SerializeField, InspectorReadonly] private T _currentValue;     // 현재값
+    [SerializeField, InspectorReadonly] private T _minValue;
+    /// <summary>
+    /// 최솟값
+    /// </summary>
+    public T MinValue => _minValue;
 
-    private readonly T _initialValue;                                // 최초값
-    private readonly List<StatModifier<T>> _modifiers = new List<StatModifier<T>>();
-    private readonly IStatOperator<T> _iOperator;
+    [SerializeField, InspectorReadonly] private T _maxValue;         
+    /// <summary>
+    /// 최댓값
+    /// </summary>
+    public T MaxValue => _maxValue;
+
+    [SerializeField, InspectorReadonly] private T _currentValue;
+    /// <summary>
+    /// 현재 값 - 모든 수정자가 적용된 최종 사용 값
+    /// </summary>
+    public T CurrentValue => _currentValue;
 
     /// <summary>
     /// 현재 값이 변경되었을 때 호출되는 이벤트
     /// </summary>
-    private event Action<Stat<T>> OnValueChanged;
+    public event Action<Stat<T>> OnValueChanged;
 
-    public Stat(T newBaseValue, T newMinValue, T newMaxValue, IStatOperator<T> newIOperator)
+    // 최초 기본 값
+    private readonly T _initialValue;
+
+    // 스탯 수정자 리스트
+    private readonly List<StatModifier<T>> _modifiers = new List<StatModifier<T>>();
+
+    // 연산 처리기
+    private readonly IStatOperator<T> _iOperator;
+
+    public Stat(T newInitialValue, T newMinValue, T newMaxValue, IStatOperator<T> newIOperator)
     {
-        //this.baseValue = baseValue;
         this._minValue = newMinValue;
         this._maxValue = newMaxValue;
         this._iOperator = newIOperator;
 
-        SetBaseValue(newBaseValue);
+        SetBaseValue(newInitialValue);
 
         _initialValue = this._baseValue;
         _currentValue = this._baseValue;
@@ -49,39 +71,27 @@ public class Stat<T> where T : IComparable<T>
         OnValueChanged = null;
     }
 
-    public Stat(StatData<T> statData) : this(statData.BaseValue, statData.MinValue, statData.MaxValue, statData.GetOperator()) { }
+    public Stat(StatData<T> statData) : this(statData.InitialValue, statData.MinValue, statData.MaxValue, statData.GetOperator()) { }
 
-    /// <summary>
-    /// 기본 값 - 수정자를 적용하지 않은 기본 값
-    /// </summary>
-    public T BaseValue => _baseValue;
-
-    /// <summary>
-    /// 현재 값 - 모든 수정자가 적용된 최종 사용 값
-    /// </summary>
-    public T CurrentValue => _currentValue;
-
-    public T MinValue => _minValue;
-
-    public T MaxValue => _maxValue;
-
-    public bool IsEmpty => _currentValue.CompareTo(_minValue) <= 0;
-    public bool IsFull => _currentValue.CompareTo(_maxValue) >= 0;
-    public bool IsValid => _currentValue.CompareTo(_minValue) >= 0 && _currentValue.CompareTo(_maxValue) <= 0;
+    public bool IsEmpty => _iOperator.IsLessThanOrEqual(_currentValue, _minValue);
+    public bool IsFull => _iOperator.IsMoreThanOrEqual(_currentValue, _maxValue);
+    public bool IsValid => _iOperator.IsBetween(_currentValue, _minValue, _maxValue);
     public float Ratio => _iOperator.Ratio(_currentValue, _minValue, _maxValue);
 
     /// <summary>
-    /// 현재 값과 비교
+    /// 현재 값과의 차이
     /// </summary>
-    public T CompareTo(T value)
+    public T GetDifference(T value)
     {
         return _iOperator.Subtract(_currentValue, value);
     }
 
-    public void SetBaseValue(T newBaseValue)
+    /// <summary>
+    /// 현재 값이 해당 범위 사이에 있는지
+    /// </summary>
+    public bool IsInRange(T min, T max)
     {
-        _baseValue = _iOperator.Clamp(newBaseValue, _minValue, _maxValue);
-        UpdateCurrentValue();
+        return _iOperator.IsBetween(_currentValue, min, max);
     }
 
     /// <summary>
@@ -96,45 +106,99 @@ public class Stat<T> where T : IComparable<T>
             _modifiers.Clear();
         }
 
-        // ClearEvent(); 는 하지 않는다.
+        UpdateCurrentValue();
+    }
+
+    #region Base Value
+    /// <summary>
+    /// 기본 값 변경
+    /// </summary>
+    public void SetBaseValue(T newBaseValue)
+    {
+        _baseValue = _iOperator.Clamp(newBaseValue, _minValue, _maxValue);
 
         UpdateCurrentValue();
     }
 
-    public void AddValue(T amount)
+    /// <summary>
+    /// 기본 값 덧셈
+    /// </summary>
+    public void AddBaseValue(T amount)
     {
         SetBaseValue(_iOperator.Add(_baseValue, amount));
     }
 
-    public void SubtractValue(T amount)
+    /// <summary>
+    /// 기본 값 뺄셈
+    /// </summary>
+    public void SubtractBaseValue(T amount)
     {
         SetBaseValue(_iOperator.Subtract(_baseValue, amount));
     }
 
-    public void MultiplyValue(T amount)
+    /// <summary>
+    /// 기본 값 곱셈
+    /// </summary>
+    public void MultiplyBaseValue(T amount)
     {
         SetBaseValue(_iOperator.Multiply(_baseValue, amount));
     }
 
-    public void DivideValue(T amount)
+    /// <summary>
+    /// 기본 값 나눗셈
+    /// </summary>
+    public void DivideBaseValue(T amount)
     {
-        SetBaseValue(_iOperator.Divide(_baseValue, amount));
+        if (_iOperator.IsMoreThan(amount, _iOperator.Zero))
+        {
+            SetBaseValue(_iOperator.Divide(_baseValue, amount));
+        }
     }
 
+    /// <summary>
+    /// 최댓값으로 설정
+    /// </summary>
     public void SetFull()
     {
         SetBaseValue(_maxValue);
     }
 
+    /// <summary>
+    /// 최솟값으로 설정
+    /// </summary>
     public void SetEmpty()
     {
         SetBaseValue(_minValue);
     }
+    #endregion
 
+    #region Min Value
+    public void SetMinValue(T newMinValue)
+    {
+        _minValue = newMinValue;
+
+        // baseValue 재설정
+        SetBaseValue(_baseValue);
+    }
+
+    public void AddMinValue(T amount)
+    {
+        SetMinValue(_iOperator.Add(_minValue, amount));
+    }
+
+    public void SubtractMinValue(T amount)
+    {
+        SetMinValue(_iOperator.Subtract(_minValue, amount));
+    }
+    #endregion
+
+    #region Max Value
     public void SetMaxValue(T newMaxValue)
     {
         _maxValue = newMaxValue;
-        UpdateCurrentValue();
+
+        // baseValue 재설정
+        SetBaseValue(_baseValue);
     }
 
     public void AddMaxValue(T amount)
@@ -142,12 +206,16 @@ public class Stat<T> where T : IComparable<T>
         SetMaxValue(_iOperator.Add(_maxValue, amount));
     }
 
-    public void SetMinValue(T newMinValue)
+    public void SubtractMaxValue(T amount)
     {
-        _minValue = newMinValue;
-        UpdateCurrentValue();
+        SetMaxValue(_iOperator.Subtract(_maxValue, amount));
     }
+    #endregion
 
+    #region Modifier
+    /// <summary>
+    /// 수정자 추가
+    /// </summary>
     public void AddModifier(StatModifier<T> modifier)
     {
         _modifiers.Add(modifier);
@@ -156,22 +224,31 @@ public class Stat<T> where T : IComparable<T>
         UpdateCurrentValue();
     }
 
+    /// <summary>
+    /// 수정자 제거
+    /// </summary>
     public bool RemoveModifier(StatModifier<T> modifier)
     {
         bool removed = _modifiers.Remove(modifier);
+
         if (removed)
         {
             UpdateCurrentValue();
         }
+
         return removed;
     }
 
-    public bool RemoveModifiersFromSource(object source)
+    /// <summary>
+    /// 특정 소스의 수정자 모두 제거
+    /// </summary>
+    public bool RemoveModifiersFromSourceId(int sourceId)
     {
         bool removed = false;
+
         for (int i = _modifiers.Count - 1; i >= 0; i--)
         {
-            if (_modifiers[i].Source == source)
+            if (_modifiers[i].SourceId == sourceId)
             {
                 _modifiers.RemoveAt(i);
                 removed = true;
@@ -182,18 +259,27 @@ public class Stat<T> where T : IComparable<T>
         {
             UpdateCurrentValue();
         }
+
         return removed;
     }
 
+    /// <summary>
+    /// 수정자 초기화
+    /// </summary>
     public void ClearModifiers()
     {
         if (_modifiers.Count > 0)
         {
             _modifiers.Clear();
+
             UpdateCurrentValue();
         }
     }
+    #endregion
 
+    /// <summary>
+    /// 현재 값 최신화
+    /// </summary>
     private void UpdateCurrentValue()
     {
         T result = _baseValue;
@@ -211,6 +297,7 @@ public class Stat<T> where T : IComparable<T>
 
                 case EStatModifierType.PercentAdd:
                     sumPercentAdd = _iOperator.Add(sumPercentAdd, modifier.Value);
+
                     if (i + 1 < _modifiers.Count && _modifiers[i + 1].Type == EStatModifierType.PercentAdd)
                     {
                         // 다음 PercentAdd 수정자까지 합산 계속
@@ -235,16 +322,5 @@ public class Stat<T> where T : IComparable<T>
             _currentValue = result;
             OnValueChanged?.Invoke(this);
         }
-    }
-
-    public void RegisterEvent(Action<Stat<T>> _event)
-    {
-        OnValueChanged += _event;
-        // OnValueChanged?.Invoke(this);
-    }
-
-    public void ClearEvent()
-    {
-        OnValueChanged = null;
     }
 }

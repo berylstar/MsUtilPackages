@@ -11,6 +11,9 @@ public interface IStatOperator<T>
     bool IsEqual(T a, T b);
     bool IsLessThan(T a, T b);
     bool IsMoreThan(T a, T b);
+    bool IsLessThanOrEqual(T a, T b);
+    bool IsMoreThanOrEqual(T a, T b);
+    bool IsBetween(T value, T min, T max);
 
     T Add(T a, T b);
     T Subtract(T a, T b);
@@ -18,6 +21,7 @@ public interface IStatOperator<T>
     T Divide(T a, T b);
     T AddOne(T a);
     T Clamp(T value, T min, T max);
+
     float Ratio(T current, T min, T max);    
 }
 
@@ -34,6 +38,9 @@ public class FloatStatOperator : IStatOperator<float>
     public bool IsEqual(float a, float b) => Mathf.Approximately(a, b);
     public bool IsLessThan(float a, float b) => a < b;
     public bool IsMoreThan(float a, float b) => a > b;
+    public bool IsLessThanOrEqual(float a, float b) => a < b || IsEqual(a, b);
+    public bool IsMoreThanOrEqual(float a, float b) => a > b || IsEqual(a, b);
+    public bool IsBetween(float value, float min, float max) => IsMoreThanOrEqual(value, min) && IsLessThanOrEqual(value, max);
 
     public float Add(float a, float b) => a + b;
     public float Subtract(float a, float b) => a - b;
@@ -41,7 +48,16 @@ public class FloatStatOperator : IStatOperator<float>
     public float Divide(float a, float b) => b != 0 ? a / b : 0;
     public float AddOne(float a) => a + 1f;
     public float Clamp(float value, float min, float max) => Mathf.Clamp(value, min, max);
-    public float Ratio(float current, float min, float max) => max > min ? Mathf.Clamp01((current - min) / (max - min)) : 0f;
+
+    public float Ratio(float current, float min, float max)
+    {
+        float range = max - min;
+
+        if (range <= Mathf.Epsilon)
+            return 0f;
+
+        return Mathf.Clamp01((current - min) / range);
+    }
 }
 
 /// <summary>
@@ -57,6 +73,9 @@ public class IntStatOperator : IStatOperator<int>
     public bool IsEqual(int a, int b) => a == b;
     public bool IsLessThan(int a, int b) => a < b;
     public bool IsMoreThan(int a, int b) => a > b;
+    public bool IsLessThanOrEqual(int a, int b) => a <= b;
+    public bool IsMoreThanOrEqual(int a, int b) => a >= b;
+    public bool IsBetween(int value, int min, int max) => min <= value && value <= max;
 
     public int Add(int a, int b) => a + b;
     public int Subtract(int a, int b) => a - b;
@@ -64,5 +83,14 @@ public class IntStatOperator : IStatOperator<int>
     public int Divide(int a, int b) => b != 0 ? a / b : 0;
     public int AddOne(int a) => a + 1;
     public int Clamp(int value, int min, int max) => Mathf.Clamp(value, min, max);
-    public float Ratio(int current, int min, int max) => max > min ? Mathf.Clamp01((float)(current - min) / (max - min)) : 0f;
+    
+    public float Ratio(int current, int min, int max)
+    {
+        int range = max - min;
+
+        if (range <= 0)
+            return 0f;
+
+        return Mathf.Clamp01((float)(current - min) / range);
+    }
 }
