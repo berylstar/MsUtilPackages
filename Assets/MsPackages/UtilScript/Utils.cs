@@ -219,6 +219,21 @@ public static class Utils
     }
 
     /// <summary>
+    /// 확률 계산
+    /// </summary>
+    /// <param name="percent">0 ~ 100 사이 정수 값</param>
+    public static bool RandomPercent(int percent)
+    {
+        if (percent <= 0)
+            return false;
+
+        if (percent >= 100)
+            return true;
+
+        return Random.Range(1, 101) <= percent;
+    }
+
+    /// <summary>
     /// 랜덤 색상
     /// </summary>
     /// <param name="alphaValue">컬러 알파 값</param>
