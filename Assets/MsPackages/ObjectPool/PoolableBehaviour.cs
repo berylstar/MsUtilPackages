@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public interface IPoolable
@@ -7,29 +8,41 @@ public interface IPoolable
     void SetReleased();
 }
 
-public abstract class PoolableBehaviour : MonoBehaviour, IPoolable
+public class PoolableBehaviour : MonoBehaviour, IPoolable
 {
     [Header("Poolable")]
     [SerializeField] private EPoolableType poolType;
     public EPoolableType PoolType => poolType;
 
+    [SerializeField] private MonoBehaviour mainComponent;
+    public MonoBehaviour MainComponent => mainComponent;
+
+    /// <summary>
+    /// 풀에서 꺼낼때 처리
+    /// </summary>
+    public event Action OnGetFromPool;
+
+    /// <summary>
+    /// 풀로 되돌릴때 처리
+    /// </summary>
+    public event Action OnReturnToPool;
+
     /// <summary>
     /// 풀에서 꺼내 사용중인지 여부
     /// </summary>
-    private bool _isUsing = false;
-    public bool IsUsing => _isUsing;
+    public bool IsUsing { get; private set; }
 
     /// <summary>
     /// 풀에서 꺼낼때 처리
     /// </summary>
     void IPoolable.SetUsed()
     {
-        if (_isUsing)
+        if (IsUsing)
             return;
 
-        _isUsing = true;
+        IsUsing = true;
 
-        OnGetFromPool();
+        OnGetFromPool?.Invoke();
     }
 
     /// <summary>
@@ -37,28 +50,18 @@ public abstract class PoolableBehaviour : MonoBehaviour, IPoolable
     /// </summary>
     void IPoolable.SetReleased()
     {
-        if (_isUsing == false)
+        if (IsUsing == false)
             return;
 
-        _isUsing = false;
+        IsUsing = false;
 
-        OnReturnToPool();
+        OnReturnToPool?.Invoke();
     }
-
-    /// <summary>
-    /// 풀에서 꺼낼때 처리
-    /// </summary>
-    protected abstract void OnGetFromPool();
-
-    /// <summary>
-    /// 풀로 되돌릴때 처리
-    /// </summary>
-    protected abstract void OnReturnToPool();
 
     /// <summary>
     /// 이 오브젝트를 풀로 되돌린다
     /// </summary>
-    protected void ReturnToPoolThis()
+    public void ReturnToPool()
     {
         ObjectPoolManager.Instance.ReturnToPool(this);
     }

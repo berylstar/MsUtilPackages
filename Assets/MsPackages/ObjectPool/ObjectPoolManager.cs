@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public enum EPoolableType
 {
-
+    None = 0,
 }
 
 public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
@@ -28,7 +28,7 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
     /// <summary>
     /// 오브젝트 풀에서 꺼내기
     /// </summary>
-    public T GetFromPool<T>(EPoolableType poolableType) where T : PoolableBehaviour
+    public PoolableBehaviour GetFromPool(EPoolableType poolableType)
     {
         // 오브젝트 홀더가 없을 때
         if (_objectHolder == null)
@@ -44,11 +44,11 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
 
         if (_poolableDict[poolableType].Count < 1)
         {
-            CreatePoolables<T>(poolableType, DEFAULT_POOL_COUNT);
+            CreatePoolables(poolableType, DEFAULT_POOL_COUNT);
         }
 
-        T poolable = _poolableDict[poolableType].Dequeue() as T;
-        
+        PoolableBehaviour poolable = _poolableDict[poolableType].Dequeue();
+
         if (poolable != null)
         {
             if (poolable is IPoolable iPoolable)
@@ -63,7 +63,7 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
     /// <summary>
     /// 풀에 보관할 오브젝트 생성
     /// </summary>
-    private void CreatePoolables<T>(EPoolableType poolableType, int poolCount) where T : PoolableBehaviour
+    private void CreatePoolables(EPoolableType poolableType, int poolCount)
     {
         string path = GetPoolablePath(poolableType);
         GameObject prefab = Utils.Load<GameObject>(path);
@@ -79,13 +79,13 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
             GameObject instance = Instantiate(prefab, _objectHolder.transform);
             instance.SetActive(false);
 
-            if (instance.TryGetComponent(out T component))
+            if (instance.TryGetComponent(out PoolableBehaviour component))
             {
                 _poolableDict[poolableType].Enqueue(component);
             }
             else
             {
-                Debug.LogError($"[ObjectPoolManager] Component {typeof(T)} not found on {prefab.name}");
+                Debug.LogError($"[ObjectPoolManager] Component {typeof(PoolableBehaviour)} not found on {prefab.name}");
 
                 // 잘못된 오브젝트는 파괴
                 Destroy(instance);
