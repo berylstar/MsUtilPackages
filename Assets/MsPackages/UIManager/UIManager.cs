@@ -4,6 +4,8 @@ using UnityEngine;
 
 public enum EUIType
 {
+    // 열거형의 값은 소트오더로써 사용
+
     UIPanel_TesterOne,
     UIPanel_TesterTwo,
 
@@ -45,11 +47,10 @@ public class UIManager : MonoSingleton<UIManager>
     }
 
     /// <summary>
-    /// UI 패널을 엽니다. 이미 생성되어 있다면 OnOpen 시퀀스만 실행
+    /// UI 패널 활성화. 이미 생성되어 있다면 OnOpen 시퀀스만 실행
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
+    /// <typeparam name="T">UIPanel을 상속받은 클래스</typeparam>
+    /// <returns>생성 또는 활성화된 UI 패널</returns>
     public T Open<T>() where T : UIPanel
     {
         EUIType uiType = GetUIType<T>();
@@ -61,7 +62,7 @@ public class UIManager : MonoSingleton<UIManager>
 
             if (uiResource == null)
             {
-                throw new Exception($"OpenUI : {uiType}");
+                throw new Exception($"[UIManager] NOT EXISTED PREFAB : {uiType}");
             }
 
             GameObject uiObject = Instantiate(uiResource, UIRoot);
@@ -82,11 +83,17 @@ public class UIManager : MonoSingleton<UIManager>
         return panel as T;
     }
 
+    /// <summary>
+    /// UI 패널 비활성화
+    /// </summary>
     public void Close<T>() where T : UIPanel
     {
         Close(GetUIType<T>());
     }
 
+    /// <summary>
+    /// UI 패널 비활성화
+    /// </summary>
     public void Close(EUIType uiType)
     {
         if (TryGet(uiType, out UIPanel uiPanel))
@@ -98,6 +105,9 @@ public class UIManager : MonoSingleton<UIManager>
         }
     }
 
+    /// <summary>
+    /// 활성화된 모든 UI 패널 비활성화
+    /// </summary>
     public void CloseAll()
     {
         foreach (EUIType uiType in _activeUIs.Keys)
@@ -106,6 +116,9 @@ public class UIManager : MonoSingleton<UIManager>
         }
     }
 
+    /// <summary>
+    /// 활성화된 모든 UI 패널 제거
+    /// </summary>
     public void ClearAll()
     {
         foreach (UIPanel panel in _activeUIs.Values)
@@ -119,6 +132,29 @@ public class UIManager : MonoSingleton<UIManager>
         _activeUIs.Clear();
     }
 
+    /// <summary>
+    /// 클래스 이름과 동일한 Enum 값을 리플렉션으로 찾아 캐싱
+    /// </summary>
+    private EUIType GetUIType<T>() where T : UIPanel
+    {
+        if (_typeCache.TryGetValue(typeof(T), out EUIType uiType) == false)
+        {
+            if (Enum.TryParse(typeof(T).Name, out EUIType parsedUIType) == false)
+            {
+                throw new Exception($"[UIManager] Enum matching failed for type: {typeof(T).Name}");
+            }
+
+            uiType = parsedUIType;
+
+            _typeCache.Add(typeof(T), uiType);
+        }
+
+        return uiType;
+    }
+
+    /// <summary>
+    /// 활성화된 UI 패널 반환
+    /// </summary>
     private bool TryGet<T>(EUIType uiType, out T uiReturn) where T : UIPanel
     {
         if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
@@ -143,23 +179,9 @@ public class UIManager : MonoSingleton<UIManager>
         }
     }
 
-    private EUIType GetUIType<T>() where T : UIPanel
-    {
-        if (_typeCache.TryGetValue(typeof(T), out EUIType uiType) == false)
-        {
-            if (Enum.TryParse(typeof(T).Name, out EUIType parsedUIType) == false)
-            {
-                throw new Exception($"[UIManager] Enum matching failed for type: {typeof(T).Name}");
-            }
-
-            uiType = parsedUIType;
-
-            _typeCache.Add(typeof(T), uiType);
-        }
-
-        return uiType;
-    }
-
+    /// <summary>
+    /// EUIType 열거형 값에 따라 우선순위 소팅
+    /// </summary>
     private void SortByType()
     {
         for (int i = 0; i < (int)EUIType.MaxCount; i++)
@@ -168,6 +190,7 @@ public class UIManager : MonoSingleton<UIManager>
 
             if (TryGet(uiType, out UIPanel uiPanel))
             {
+                // Hierarchy 아래 있을 수록 앞에 보인다
                 uiPanel.transform.SetAsLastSibling();
             }
         }
