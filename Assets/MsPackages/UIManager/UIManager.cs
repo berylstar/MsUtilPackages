@@ -16,7 +16,9 @@ public class UIManager : MonoSingleton<UIManager>
     private const string TAG_UIROOT = "UIRoot";
     private const string PATH_UIPREFAB = "UIPrefabs/";
 
-    private readonly Dictionary<EUIType, UIPanel> _activeUIs = new();
+    private readonly Dictionary<EUIType, UIPanel> _activeUIs = new Dictionary<EUIType, UIPanel>();
+
+    private readonly Dictionary<Type, EUIType> _typeCache = new Dictionary<Type, EUIType>();
 
     private Transform _uiRoot;
     public Transform UIRoot
@@ -32,8 +34,10 @@ public class UIManager : MonoSingleton<UIManager>
         }
     }
 
-    public T Open<T>(EUIType uiType) where T : UIPanel
+    public T Open<T>() where T : UIPanel
     {
+        EUIType uiType = GetUIType<T>();
+
         // UI 최초 생성시
         if (_activeUIs.TryGetValue(uiType, out UIPanel panel) == false)
         {
@@ -47,7 +51,6 @@ public class UIManager : MonoSingleton<UIManager>
             GameObject uiObject = Instantiate(uiResource, UIRoot);
 
             panel = uiObject.GetComponent<UIPanel>();
-            panel.InitializeRectTransform();
 
             _activeUIs.Add(uiType, panel);
 
@@ -60,23 +63,24 @@ public class UIManager : MonoSingleton<UIManager>
         return panel as T;
     }
 
+    public void Close<T>(bool destroyFlag = false) where T : UIPanel
+    {
+        EUIType uiType = GetUIType<T>();
+
+        Close(uiType, destroyFlag);
+    }
+
     public void Close(EUIType uiType, bool destroyFlag = false)
     {
         if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
         {
-            uiPanel.OnClose();
+            uiPanel.OnClose(destroyFlag);
 
             if (destroyFlag)
             {
-                Destroy(uiPanel.gameObject);
                 _activeUIs.Remove(uiType);
             }
         }
-    }
-
-    public void Close(UIPanel uiPanel, bool destroyFlag = false)
-    {
-        Close(uiPanel.UIType, destroyFlag);
     }
 
     public void ClearAll()
@@ -92,8 +96,10 @@ public class UIManager : MonoSingleton<UIManager>
         _activeUIs.Clear();
     }
 
-    public bool TryGet<T>(EUIType uiType, out T uiReturn) where T : UIPanel
+    public bool TryGet<T>(out T uiReturn) where T : UIPanel
     {
+        EUIType uiType = GetUIType<T>();
+
         if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
         {
             uiReturn = uiPanel as T;
@@ -104,6 +110,23 @@ public class UIManager : MonoSingleton<UIManager>
             uiReturn = null;
             return false;
         }
+    }
+
+    private EUIType GetUIType<T>() where T : UIPanel
+    {
+        if (_typeCache.TryGetValue(typeof(T), out EUIType uiType) == false)
+        {
+            if (Enum.TryParse(typeof(T).Name, out EUIType parsedUIType) == false)
+            {
+                throw new Exception($"[UIManager] Enum matching failed for type: {typeof(T).Name}");
+            }
+
+            uiType = parsedUIType;
+
+            _typeCache.Add(typeof(T), uiType);
+        }
+
+        return uiType;
     }
 
     private void SortByType()

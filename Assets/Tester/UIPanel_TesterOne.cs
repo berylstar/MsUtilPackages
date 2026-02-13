@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,20 +19,32 @@ public class UIPanel_TesterOne : UIPanel
         BindOnClickButton(plusButton, ClickPlusButton);
     }
 
-    public override void OnOpen()
-    {
-        this.gameObject.SetActive(true);
-    }
-
-    public override void OnClose()
-    {
-        this.gameObject.SetActive(false);
-    }
-
     public void Initialize()
     {
         count = 0;
         countText.text = "0";
+    }
+
+    protected override void PlayCloseSequence(Action onFinished)
+    {
+        StartCoroutine(CoScale(onFinished));
+    }
+
+    private IEnumerator CoScale(Action onFinished)
+    {
+        float time = 1f;
+
+        while (time > 0)
+        {
+            time -= Time.deltaTime;
+
+            yield return null;
+
+            RectTransform.localScale = Vector3.one * time;
+        }
+
+        RectTransform.localScale = Vector3.zero;
+        onFinished?.Invoke();
     }
 
     private void ClickLogButton()

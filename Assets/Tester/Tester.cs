@@ -13,18 +13,18 @@ public class Tester : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.F1))
         {
-            UIPanel_TesterOne ui = UIManager.Instance.Open<UIPanel_TesterOne>(EUIType.UIPanel_TesterOne);
+            UIPanel_TesterOne ui = UIManager.Instance.Open<UIPanel_TesterOne>();
             ui.Initialize();
         }
 
         if (Input.GetKeyDown(KeyCode.F2))
         {
-            UIManager.Instance.Close(EUIType.UIPanel_TesterOne, true);
+            UIManager.Instance.Close<UIPanel_TesterOne>(true);
         }
 
         if (Input.GetKeyDown(KeyCode.F3))
         {
-            bool isActive = UIManager.Instance.TryGet(EUIType.UIPanel_TesterOne, out UIPanel_TesterOne ui);
+            bool isActive = UIManager.Instance.TryGet(out UIPanel_TesterOne ui);
 
             Debug.Log(isActive);
             Debug.Log(ui);
@@ -32,12 +32,12 @@ public class Tester : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.F4))
         {
-            UIPanel_TesterTwo ui = UIManager.Instance.Open<UIPanel_TesterTwo>(EUIType.UIPanel_TesterTwo);
+            UIPanel_TesterTwo ui = UIManager.Instance.Open<UIPanel_TesterTwo>();
         }
 
         if (Input.GetKeyDown(KeyCode.F5))
         {
-            UIManager.Instance.Close(EUIType.UIPanel_TesterTwo, true);
+            UIManager.Instance.Close<UIPanel_TesterTwo>(true);
         }
     }
 }
