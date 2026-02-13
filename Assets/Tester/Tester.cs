@@ -19,15 +19,15 @@ public class Tester : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.F2))
         {
-            UIManager.Instance.Close<UIPanel_TesterOne>(true);
+            UIManager.Instance.Close<UIPanel_TesterOne>();
         }
 
         if (Input.GetKeyDown(KeyCode.F3))
         {
-            bool isActive = UIManager.Instance.TryGet(out UIPanel_TesterOne ui);
+            //bool isActive = UIManager.Instance.TryGet(out UIPanel_TesterOne ui);
 
-            Debug.Log(isActive);
-            Debug.Log(ui);
+            //Debug.Log(isActive);
+            //Debug.Log(ui);
         }
 
         if (Input.GetKeyDown(KeyCode.F4))
@@ -37,7 +37,7 @@ public class Tester : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.F5))
         {
-            UIManager.Instance.Close<UIPanel_TesterTwo>(true);
+            UIManager.Instance.Close<UIPanel_TesterTwo>();
         }
     }
 }

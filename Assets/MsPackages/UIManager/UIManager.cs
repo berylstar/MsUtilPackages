@@ -16,11 +16,21 @@ public class UIManager : MonoSingleton<UIManager>
     private const string TAG_UIROOT = "UIRoot";
     private const string PATH_UIPREFAB = "UIPrefabs/";
 
+    /// <summary>
+    /// 생성된 UI 패널 딕셔너리
+    /// </summary>
     private readonly Dictionary<EUIType, UIPanel> _activeUIs = new Dictionary<EUIType, UIPanel>();
 
+    /// <summary>
+    /// Generic 타입으로 Enum 찾기 위한 성능 최적화용 캐시 딕셔너리
+    /// </summary>
     private readonly Dictionary<Type, EUIType> _typeCache = new Dictionary<Type, EUIType>();
 
     private Transform _uiRoot;
+
+    /// <summary>
+    /// 씬에 배치되는 캔버스
+    /// </summary>
     public Transform UIRoot
     {
         get
@@ -34,12 +44,18 @@ public class UIManager : MonoSingleton<UIManager>
         }
     }
 
+    /// <summary>
+    /// UI 패널을 엽니다. 이미 생성되어 있다면 OnOpen 시퀀스만 실행
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
     public T Open<T>() where T : UIPanel
     {
         EUIType uiType = GetUIType<T>();
 
         // UI 최초 생성시
-        if (_activeUIs.TryGetValue(uiType, out UIPanel panel) == false)
+        if (TryGet(uiType, out UIPanel panel) == false)
         {
             GameObject uiResource = Resources.Load<GameObject>($"{PATH_UIPREFAB}{uiType}");
 
@@ -58,28 +74,35 @@ public class UIManager : MonoSingleton<UIManager>
             SortByType();
         }
 
-        panel.OnOpen();
+        if (panel is IUICommand uiCommand)
+        {
+            uiCommand.OnOpen();
+        }
 
         return panel as T;
     }
 
-    public void Close<T>(bool destroyFlag = false) where T : UIPanel
+    public void Close<T>() where T : UIPanel
     {
-        EUIType uiType = GetUIType<T>();
-
-        Close(uiType, destroyFlag);
+        Close(GetUIType<T>());
     }
 
-    public void Close(EUIType uiType, bool destroyFlag = false)
+    public void Close(EUIType uiType)
     {
-        if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
+        if (TryGet(uiType, out UIPanel uiPanel))
         {
-            uiPanel.OnClose(destroyFlag);
-
-            if (destroyFlag)
+            if (uiPanel is IUICommand uiCommand)
             {
-                _activeUIs.Remove(uiType);
+                uiCommand.OnClose();
             }
+        }
+    }
+
+    public void CloseAll()
+    {
+        foreach (EUIType uiType in _activeUIs.Keys)
+        {
+            Close(uiType);
         }
     }
 
@@ -96,14 +119,22 @@ public class UIManager : MonoSingleton<UIManager>
         _activeUIs.Clear();
     }
 
-    public bool TryGet<T>(out T uiReturn) where T : UIPanel
+    private bool TryGet<T>(EUIType uiType, out T uiReturn) where T : UIPanel
     {
-        EUIType uiType = GetUIType<T>();
-
         if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
         {
-            uiReturn = uiPanel as T;
-            return true;
+            if (uiPanel == null)
+            {
+                _activeUIs.Remove(uiType);
+
+                uiReturn = null;
+                return false;
+            }
+            else
+            {
+                uiReturn = uiPanel as T;
+                return true;
+            }
         }
         else
         {
@@ -135,7 +166,7 @@ public class UIManager : MonoSingleton<UIManager>
         {
             EUIType uiType = (EUIType)i;
 
-            if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
+            if (TryGet(uiType, out UIPanel uiPanel))
             {
                 uiPanel.transform.SetAsLastSibling();
             }

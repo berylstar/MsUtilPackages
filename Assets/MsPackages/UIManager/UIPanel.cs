@@ -5,7 +5,14 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-public abstract class UIPanel : MonoBehaviour
+public interface IUICommand
+{
+    void OnOpen();
+
+    void OnClose();
+}
+
+public abstract class UIPanel : MonoBehaviour, IUICommand
 {
     public abstract EUIType UIType { get; }
     public bool IsActivated { get; private set; }
@@ -24,8 +31,17 @@ public abstract class UIPanel : MonoBehaviour
         }
     }
 
-    public void OnOpen()
+    public void Close()
     {
+        UIManager.Instance.Close(UIType);
+    }
+
+    #region IUICommand
+    void IUICommand.OnOpen()
+    {
+        if (IsActivated)
+            return;
+
         IsActivated = true;
         this.gameObject.SetActive(true);
 
@@ -34,19 +50,15 @@ public abstract class UIPanel : MonoBehaviour
         PlayOpenSequence();
     }
 
-    public void OnClose(bool destroyFlag)
+    void IUICommand.OnClose()
     {
+        if (IsActivated == false)
+            return;
+
         PlayCloseSequence(() =>
         {
-            if (destroyFlag)
-            {
-                Destroy(this.gameObject);
-            }
-            else
-            {
-                IsActivated = false;
-                this.gameObject.SetActive(false);
-            }
+            IsActivated = false;
+            this.gameObject.SetActive(false);
         });
     }
 
@@ -58,6 +70,14 @@ public abstract class UIPanel : MonoBehaviour
     protected virtual void PlayCloseSequence(Action onFinished)
     {
         onFinished?.Invoke();
+    }
+    #endregion
+
+    private void InitializeRectTransform()
+    {
+        RectTransform.anchoredPosition = Vector2.zero;
+        RectTransform.sizeDelta = Vector2.zero;
+        RectTransform.localScale = Vector3.one;
     }
 
     #region UI Element
@@ -79,11 +99,4 @@ public abstract class UIPanel : MonoBehaviour
         toggle.onValueChanged.AddListener(changeAction);
     }
     #endregion
-
-    private void InitializeRectTransform()
-    {
-        RectTransform.anchoredPosition = Vector2.zero;
-        RectTransform.sizeDelta = Vector2.zero;
-        RectTransform.localScale = Vector3.one;
-    }
 }
