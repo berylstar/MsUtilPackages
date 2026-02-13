@@ -4,7 +4,10 @@ using UnityEngine;
 
 public enum EUIType
 {
-    ////////////////////
+    UIPanel_TesterOne,
+    UIPanel_TesterTwo,
+
+    //--------------------
     MaxCount
 }
 
@@ -29,21 +32,10 @@ public class UIManager : MonoSingleton<UIManager>
         }
     }
 
-    /// <summary>
-    /// UI 생성
-    /// </summary>
-    /// <typeparam name="T"> 호출 되어야할 클래스 - 프리팹 이름이 같아야 한다.</typeparam>
-    /// <param name="_active">오브젝트 활성화 여부</param>
-    /// <returns> 호출한 클래스를 리턴한다 </returns>
-    public T Open<T>()
+    public T Open<T>(EUIType uiType) where T : UIPanel
     {
-        if (Enum.TryParse(typeof(T).Name, out EUIType uiType) == false)
-        {
-            throw new Exception($"OpenUI : {uiType}");
-        }
-
         // UI 최초 생성시
-        if (_activeUIs.ContainsKey(uiType) == false)
+        if (_activeUIs.TryGetValue(uiType, out UIPanel panel) == false)
         {
             GameObject uiResource = Resources.Load<GameObject>($"{PATH_UIPREFAB}{uiType}");
 
@@ -54,85 +46,75 @@ public class UIManager : MonoSingleton<UIManager>
 
             GameObject uiObject = Instantiate(uiResource, UIRoot);
 
-            _activeUIs.Add(uiType, uiObject.GetComponent<UIPanel>());
+            panel = uiObject.GetComponent<UIPanel>();
+            panel.InitializeRectTransform();
 
+            _activeUIs.Add(uiType, panel);
+
+            // 신규 생성 시에만 정렬
             SortByType();
         }
 
-        _activeUIs[uiType].gameObject.SetActive(true);
+        panel.OnOpen();
 
-        return _activeUIs[uiType].GetComponent<T>();
+        return panel as T;
     }
 
-    /// <summary>
-    /// UI 닫기
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="destroyFlag">true = 오브젝트 파괴</param>
-    public void Close<T>(bool destroyFlag = false)
+    public void Close(EUIType uiType, bool destroyFlag = false)
     {
-        if (Enum.TryParse(typeof(T).Name, out EUIType uiType) == false)
+        if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
         {
-            throw new Exception($"CloseUI : {uiType}");
-        }
+            uiPanel.OnClose();
 
-        if (_activeUIs.ContainsKey(uiType))
-        {
             if (destroyFlag)
             {
-                Destroy(_activeUIs[uiType].gameObject);
+                Destroy(uiPanel.gameObject);
                 _activeUIs.Remove(uiType);
-            }
-            else
-            {
-                _activeUIs[uiType].gameObject.SetActive(false);
             }
         }
     }
 
-    /// <summary>
-    /// 생성된 UI 반환
-    /// </summary>
-    /// <param name="uiReturn">해당하는 UI</param>
-    /// <param name="activeFlag">true일 때, 오브젝트 활성화</param>
-    /// <returns>해당 UI 생성 여부</returns>
-    public bool TryGet<T>(out T uiReturn, bool activeFlag = false)
+    public void Close(UIPanel uiPanel, bool destroyFlag = false)
     {
-        if (Enum.TryParse(typeof(T).Name, out EUIType uiType) == false)
+        Close(uiPanel.UIType, destroyFlag);
+    }
+
+    public void ClearAll()
+    {
+        foreach (UIPanel panel in _activeUIs.Values)
         {
-            throw new Exception($"GetUI : {uiType}");
+            if (panel != null)
+            {
+                Destroy(panel.gameObject);
+            }
         }
 
-        if (_activeUIs.ContainsKey(uiType) == false || _activeUIs[uiType] == null)
+        _activeUIs.Clear();
+    }
+
+    public bool TryGet<T>(EUIType uiType, out T uiReturn) where T : UIPanel
+    {
+        if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
         {
-            uiReturn = default;
-            return false;
+            uiReturn = uiPanel as T;
+            return true;
         }
         else
         {
-            uiReturn = _activeUIs[uiType].GetComponent<T>();
-
-            if (activeFlag)
-            {
-                _activeUIs[uiType].gameObject.SetActive(true);
-            }
-
-            return true;
+            uiReturn = null;
+            return false;
         }
     }
 
-    /// <summary>
-    /// 열거형의 값으로 UI 순서 정렬
-    /// </summary>
     private void SortByType()
     {
         for (int i = 0; i < (int)EUIType.MaxCount; i++)
         {
             EUIType uiType = (EUIType)i;
 
-            if (_activeUIs.ContainsKey(uiType))
+            if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
             {
-                _activeUIs[uiType].transform.SetAsLastSibling();
+                uiPanel.transform.SetAsLastSibling();
             }
         }
     }

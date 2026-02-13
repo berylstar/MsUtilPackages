@@ -4,8 +4,10 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-public class UIPanel : MonoBehaviour
+public abstract class UIPanel : MonoBehaviour
 {
+    public abstract EUIType UIType { get; }
+
     private RectTransform _rectTransform;
     protected RectTransform RectTransform
     {
@@ -20,18 +22,21 @@ public class UIPanel : MonoBehaviour
         }
     }
 
-    public void SetOnCanvas(Transform uiRoot)
-    {
-        transform.SetParent(uiRoot);
+    public abstract void OnOpen();
 
+    public abstract void OnClose();
+
+    public void InitializeRectTransform()
+    {
         RectTransform.anchoredPosition = Vector2.zero;
         RectTransform.sizeDelta = Vector2.zero;
+        RectTransform.localScale = Vector3.one;
     }
 
     /// <summary>
     /// 버튼 클릭 이벤트 초기화
     /// </summary>
-    protected void InitializeButtonEvent(Button btn, UnityAction clickAction)
+    protected void BindOnClickButton(Button btn, UnityAction clickAction)
     {
         btn.onClick.RemoveAllListeners();
         btn.onClick.AddListener(clickAction);
@@ -40,7 +45,7 @@ public class UIPanel : MonoBehaviour
     /// <summary>
     /// 토글 변화 이벤트 초기화
     /// </summary>
-    protected void InitializeToggleEvent(Toggle toggle, UnityAction<bool> changeAction)
+    protected void BindOnChangeToggle(Toggle toggle, UnityAction<bool> changeAction)
     {
         toggle.onValueChanged.RemoveAllListeners();
         toggle.onValueChanged.AddListener(changeAction);
