@@ -1,6 +1,10 @@
 using System;
 using System.Threading.Tasks;
 
+/// <summary>
+/// initialize는 Start에서만 실행한다
+/// </summary>
+/// <typeparam name="T">data타입</typeparam>
 public class SaverForData<T> : Saver
 {
     public delegate void AfterSaveLoad();

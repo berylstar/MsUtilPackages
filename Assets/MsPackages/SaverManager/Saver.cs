@@ -6,11 +6,11 @@ using UnityEngine;
 
 public abstract class Saver
 {
-    public int LoadSaveOrder { get; protected set; }
+    public int LoadSaveOrder = 0;
 
     private SaveData _saveData;
 
-    private static readonly Queue<Func<Task>> _taskQueue = new Queue<Func<Task>>(); // 작업을 순차적으로 처리하기 위한 큐
+    private static Queue<Func<Task>> taskQueue = new Queue<Func<Task>>(); // 작업을 순차적으로 처리하기 위한 큐
     private static bool isProcessingQueue = false; // 작업 대기열 처리 중인지 여부
 
     public void InitializeSaver(string name)
@@ -18,15 +18,12 @@ public abstract class Saver
         _saveData = new SaveData(SaverManager.Instance.SavePath, name);
     }
 
-    /// <summary>
-    /// 데이터를 JSON으로 변환하여 저장 큐에 추가합니다.
-    /// </summary>
     public async Task AddSaverData<T>(T data)
     {
         // 작업을 큐에 추가
-        _taskQueue.Enqueue(() => ProcessSaverData(data));
+        taskQueue.Enqueue(() => ProcessSaverData(data));
 
-        // 현재 처리 중이 아니라면 큐 가동
+        // 만약 현재 작업이 진행 중이 아니라면, 큐 처리 시작
         if (isProcessingQueue == false)
         {
             isProcessingQueue = true;
@@ -37,18 +34,14 @@ public abstract class Saver
     // 큐에서 작업을 하나씩 처리하는 메서드
     private static async Task ProcessQueue()
     {
-        while (_taskQueue.Count > 0)
+        while (taskQueue.Count > 0)
         {
             // 큐에서 다음 작업을 꺼내어 실행
-            Func<Task> taskToRun = _taskQueue.Dequeue();
-
-            if (taskToRun != null)
-            {
-                await taskToRun();
-            }
+            var taskToRun = taskQueue.Dequeue();
+            await taskToRun();
         }
 
-        isProcessingQueue = false;
+        isProcessingQueue = false; // 모든 작업이 완료되면 처리 중 상태를 false로 변경
     }
 
     // 실제 데이터를 처리하는 비동기 작업
@@ -59,7 +52,6 @@ public abstract class Saver
             try
             {
                 _saveData.SetJson(JsonUtility.ToJson(data));
-
                 SaverManager.Instance.AddSaveDataWithStorege(this, _saveData);
             }
             catch (OperationCanceledException)
@@ -73,28 +65,18 @@ public abstract class Saver
         });
     }
 
-    /// <summary>
-    /// 저장된 파일을 읽어와 객체로 역직렬화합니다.
-    /// </summary>
     public T LoadJsonData<T>()
     {
         string fullPath = _saveData.GetFullPath();
 
-        if (File.Exists(fullPath) == false)
-        {
-            return default(T);
-        }
-
-        try
+        // 파일 존재 여부 확인 후 읽기 (안정성을 위해 권장)
+        if (File.Exists(fullPath))
         {
             string json = File.ReadAllText(fullPath);
             return JsonUtility.FromJson<T>(json);
         }
-        catch (Exception ex)
-        {
-            Debug.LogError($"파일 읽기 중 오류 발생 ({fullPath}): {ex.Message}");
-            return default(T);
-        }
+
+        return default(T);
     }
 
     public abstract void Save();
