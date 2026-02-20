@@ -51,9 +51,9 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
 
         if (poolable != null)
         {
-            if (poolable is IPoolable iPoolable)
+            if (poolable is IPoolableCommander poolableCommander)
             {
-                iPoolable.SetUsed();
+                poolableCommander.SetUsed();
             }
         }
 
@@ -107,9 +107,9 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
 
         if (_poolableDict.ContainsKey(poolable.PoolType))
         {
-            if (poolable is IPoolable iPoolable)
+            if (poolable is IPoolableCommander poolableCommander)
             {
-                iPoolable.SetReleased();
+                poolableCommander.SetReleased();
             }
 
             _poolableDict[poolable.PoolType].Enqueue(poolable);

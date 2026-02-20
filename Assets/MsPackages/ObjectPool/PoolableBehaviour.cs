@@ -1,14 +1,17 @@
 using System;
 using UnityEngine;
 
-public interface IPoolable
+/// <summary>
+/// ObjectPoolManager에서 실행할 수 있도록 하는 풀링 명령 인터페이스
+/// </summary>
+public interface IPoolableCommander
 {
     void SetUsed();
 
     void SetReleased();
 }
 
-public class PoolableBehaviour : MonoBehaviour, IPoolable
+public class PoolableBehaviour : MonoBehaviour, IPoolableCommander
 {
     [Header("Poolable")]
     [SerializeField] private EPoolableType poolType;
@@ -35,7 +38,7 @@ public class PoolableBehaviour : MonoBehaviour, IPoolable
     /// <summary>
     /// 풀에서 꺼낼때 처리
     /// </summary>
-    void IPoolable.SetUsed()
+    void IPoolableCommander.SetUsed()
     {
         if (IsUsing)
             return;
@@ -48,7 +51,7 @@ public class PoolableBehaviour : MonoBehaviour, IPoolable
     /// <summary>
     /// 풀로 되돌릴때 처리
     /// </summary>
-    void IPoolable.SetReleased()
+    void IPoolableCommander.SetReleased()
     {
         if (IsUsing == false)
             return;

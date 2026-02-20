@@ -9,6 +9,9 @@ public class StatInitializer<T> where T : IComparable<T>
 
     public void Initialize()
     {
+        if (statData == null)
+            return;
+
         Stat = new Stat<T>(statData);
     }
 }

@@ -75,7 +75,7 @@ public class Stat<T> where T : IComparable<T>
 
     public bool IsEmpty => _iOperator.IsLessThanOrEqual(_currentValue, _minValue);
     public bool IsFull => _iOperator.IsMoreThanOrEqual(_currentValue, _maxValue);
-    public bool IsValid => _iOperator.IsBetween(_currentValue, _minValue, _maxValue);
+    public bool IsValid => _iOperator.IsMoreThan(_currentValue, _minValue);
     public float Ratio => _iOperator.Ratio(_currentValue, _minValue, _maxValue);
 
     /// <summary>
@@ -123,7 +123,7 @@ public class Stat<T> where T : IComparable<T>
     /// <summary>
     /// 기본 값 덧셈
     /// </summary>
-    public void AddBaseValue(T amount)
+    public void AddValue(T amount)
     {
         SetBaseValue(_iOperator.Add(_baseValue, amount));
     }
@@ -131,7 +131,7 @@ public class Stat<T> where T : IComparable<T>
     /// <summary>
     /// 기본 값 뺄셈
     /// </summary>
-    public void SubtractBaseValue(T amount)
+    public void SubtractValue(T amount)
     {
         SetBaseValue(_iOperator.Subtract(_baseValue, amount));
     }
@@ -139,7 +139,7 @@ public class Stat<T> where T : IComparable<T>
     /// <summary>
     /// 기본 값 곱셈
     /// </summary>
-    public void MultiplyBaseValue(T amount)
+    public void MultiplyValue(T amount)
     {
         SetBaseValue(_iOperator.Multiply(_baseValue, amount));
     }
@@ -147,7 +147,7 @@ public class Stat<T> where T : IComparable<T>
     /// <summary>
     /// 기본 값 나눗셈
     /// </summary>
-    public void DivideBaseValue(T amount)
+    public void DivideValue(T amount)
     {
         if (_iOperator.IsMoreThan(amount, _iOperator.Zero))
         {
@@ -181,15 +181,15 @@ public class Stat<T> where T : IComparable<T>
         SetBaseValue(_baseValue);
     }
 
-    public void AddMinValue(T amount)
-    {
-        SetMinValue(_iOperator.Add(_minValue, amount));
-    }
+    //public void AddMinValue(T amount)
+    //{
+    //    SetMinValue(_iOperator.Add(_minValue, amount));
+    //}
 
-    public void SubtractMinValue(T amount)
-    {
-        SetMinValue(_iOperator.Subtract(_minValue, amount));
-    }
+    //public void SubtractMinValue(T amount)
+    //{
+    //    SetMinValue(_iOperator.Subtract(_minValue, amount));
+    //}
     #endregion
 
     #region Max Value
@@ -201,15 +201,15 @@ public class Stat<T> where T : IComparable<T>
         SetBaseValue(_baseValue);
     }
 
-    public void AddMaxValue(T amount)
-    {
-        SetMaxValue(_iOperator.Add(_maxValue, amount));
-    }
+    //public void AddMaxValue(T amount)
+    //{
+    //    SetMaxValue(_iOperator.Add(_maxValue, amount));
+    //}
 
-    public void SubtractMaxValue(T amount)
-    {
-        SetMaxValue(_iOperator.Subtract(_maxValue, amount));
-    }
+    //public void SubtractMaxValue(T amount)
+    //{
+    //    SetMaxValue(_iOperator.Subtract(_maxValue, amount));
+    //}
     #endregion
 
     #region Modifier
@@ -322,5 +322,31 @@ public class Stat<T> where T : IComparable<T>
             _currentValue = result;
             OnValueChanged?.Invoke(this);
         }
+    }
+
+    /// <summary>
+    /// 새 콜백 등록하고 호출
+    /// </summary>
+    public void RegisterListener(Action<Stat<T>> listener)
+    {
+        OnValueChanged += listener;
+
+        listener?.Invoke(this);
+    }
+
+    /// <summary>
+    /// 콜백 해제
+    /// </summary>
+    public void UnregisterListener(Action<Stat<T>> listener)
+    {
+        OnValueChanged -= listener;
+    }
+
+    /// <summary>
+    /// 모든 콜백 해제
+    /// </summary>
+    public void ClearListener()
+    {
+        OnValueChanged = null;
     }
 }
