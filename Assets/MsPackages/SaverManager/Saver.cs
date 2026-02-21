@@ -6,12 +6,12 @@ using UnityEngine;
 
 public abstract class Saver
 {
-    public int LoadSaveOrder = 0;
+    public int LoadSaveOrder { get; protected set; }
 
     private SaveData _saveData;
 
-    private static Queue<Func<Task>> taskQueue = new Queue<Func<Task>>(); // 작업을 순차적으로 처리하기 위한 큐
-    private static bool isProcessingQueue = false; // 작업 대기열 처리 중인지 여부
+    private static readonly Queue<Func<Task>> _taskQueue = new Queue<Func<Task>>(); // 작업을 순차적으로 처리하기 위한 큐
+    private static bool _isProcessingQueue = false; // 작업 대기열 처리 중인지 여부
 
     public void InitializeSaver(string name)
     {
@@ -21,12 +21,12 @@ public abstract class Saver
     public async Task AddSaverData<T>(T data)
     {
         // 작업을 큐에 추가
-        taskQueue.Enqueue(() => ProcessSaverData(data));
+        _taskQueue.Enqueue(() => ProcessSaverData(data));
 
         // 만약 현재 작업이 진행 중이 아니라면, 큐 처리 시작
-        if (isProcessingQueue == false)
+        if (_isProcessingQueue == false)
         {
-            isProcessingQueue = true;
+            _isProcessingQueue = true;
             await ProcessQueue();
         }
     }
@@ -34,14 +34,14 @@ public abstract class Saver
     // 큐에서 작업을 하나씩 처리하는 메서드
     private static async Task ProcessQueue()
     {
-        while (taskQueue.Count > 0)
+        while (_taskQueue.Count > 0)
         {
             // 큐에서 다음 작업을 꺼내어 실행
-            var taskToRun = taskQueue.Dequeue();
+            var taskToRun = _taskQueue.Dequeue();
             await taskToRun();
         }
 
-        isProcessingQueue = false; // 모든 작업이 완료되면 처리 중 상태를 false로 변경
+        _isProcessingQueue = false; // 모든 작업이 완료되면 처리 중 상태를 false로 변경
     }
 
     // 실제 데이터를 처리하는 비동기 작업
