@@ -21,22 +21,23 @@ public class Tester : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F2))
         {
             playDataOne.coin.AddValue(1);
-            _ = playDataOne.SaveAsync(SaverManager.SavePath);
+            _ = SaverManager.SaveAsync(playDataOne);
         }
 
         if (Input.GetKeyDown(KeyCode.F3))
         {
-            playDataOne.Load(SaverManager.SavePath);
+            bool isUpdated = SaverManager.TryLoadAndUpdate(playDataOne);
+            Debug.Log(isUpdated);
         }
 
         if (Input.GetKeyDown(KeyCode.F4))
         {
-            playDataOne.Delete(SaverManager.SavePath);
+            SaverManager.DeleteFile(playDataOne);
         }
 
         if (Input.GetKeyDown(KeyCode.F5))
         {
-
+            playDataOne.stage += 1;
         }
     }
 }
@@ -44,7 +45,7 @@ public class Tester : MonoBehaviour
 [Serializable]
 public class PlayData : SaveData
 {
-    protected override string FileName => $"PlayerInfo_{slot}";
+    public override string FileName => $"PlayerInfo_{slot}";
 
     private readonly int slot;
 

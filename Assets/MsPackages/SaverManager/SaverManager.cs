@@ -1,87 +1,263 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public static class SaverManager
 {
-    private static readonly List<SaveData> _registeredDatas = new List<SaveData>();
+    /// <summary>
+    /// 세이브 관리 대상 해쉬 셋
+    /// </summary>
+    private static readonly HashSet<SaveData> _saveTargets = new HashSet<SaveData>();
 
-    private static string _savePath = string.Empty;
-    public static string SavePath
+    private static string _savePath;
+
+    /// <summary>
+    /// 세이브 파일 저장 경로
+    /// </summary>
+    private static string GetFullPath(string fileName)
+    {
+        if (string.IsNullOrEmpty(_savePath))
+        {
+            _savePath = Path.Combine(Application.persistentDataPath, "SaveData");
+
+            if (Directory.Exists(_savePath) == false)
+            {
+                Directory.CreateDirectory(_savePath);
+            }
+        }
+
+        return Path.Combine(_savePath, $"{fileName}.txt");
+    }
+
+    #region 암호화 & 복호화 (AES 128)
+
+    private static string _secureKey = string.Empty;
+
+    /// <summary>
+    /// 암복호화를 위한 보안 키
+    /// </summary>
+    private static string SecureKey
     {
         get
         {
-            if (string.IsNullOrEmpty(_savePath))
-                Initialize();
+            if (string.IsNullOrEmpty(_secureKey))
+            {
+                string rawKey = $"{SystemInfo.deviceUniqueIdentifier}AppleBanana_Salt_77";
 
-            return _savePath;
+                if (rawKey.Length > 16)
+                {
+                    _secureKey = rawKey.Substring(0, 16);
+                }
+                else
+                {
+                    _secureKey = rawKey.PadRight(16, '0');
+                }
+            }
+
+            return _secureKey;
         }
     }
 
-    private static bool _isInitialized = false;
-
-    private static void Initialize()
+    /// <summary>
+    /// 암호화
+    /// </summary>
+    private static string Encrypt(string textToEncrypt)
     {
-        if (_isInitialized)
-            return;
-
-        _isInitialized = true;
-
-        _savePath = Path.Combine(Application.persistentDataPath, "SaveData");
-
-        if (Directory.Exists(SavePath) == false)
+        using (RijndaelManaged rijndaelCipher = new RijndaelManaged())
         {
-            Directory.CreateDirectory(SavePath);
+            rijndaelCipher.Mode = CipherMode.CBC;
+            rijndaelCipher.Padding = PaddingMode.PKCS7;
+            rijndaelCipher.KeySize = 128;
+            rijndaelCipher.BlockSize = 128;
+
+            byte[] pwdBytes = Encoding.UTF8.GetBytes(SecureKey);
+            byte[] keyBytes = new byte[16];
+            int len = pwdBytes.Length;
+            if (len > keyBytes.Length) len = keyBytes.Length;
+
+            Array.Copy(pwdBytes, keyBytes, len);
+            rijndaelCipher.Key = keyBytes;
+            rijndaelCipher.IV = keyBytes;
+
+            ICryptoTransform transform = rijndaelCipher.CreateEncryptor();
+            byte[] plainText = Encoding.UTF8.GetBytes(textToEncrypt);
+            return Convert.ToBase64String(transform.TransformFinalBlock(plainText, 0, plainText.Length));
         }
     }
 
+    /// <summary>
+    /// 복호화
+    /// </summary>
+    private static string Decrypt(string textToDecrypt)
+    {
+        using (RijndaelManaged rijndaelCipher = new RijndaelManaged())
+        {
+            rijndaelCipher.Mode = CipherMode.CBC;
+            rijndaelCipher.Padding = PaddingMode.PKCS7;
+            rijndaelCipher.KeySize = 128;
+            rijndaelCipher.BlockSize = 128;
+
+            byte[] encryptedData = Convert.FromBase64String(textToDecrypt);
+            byte[] pwdBytes = Encoding.UTF8.GetBytes(SecureKey);
+            byte[] keyBytes = new byte[16];
+            int len = pwdBytes.Length;
+            if (len > keyBytes.Length) len = keyBytes.Length;
+
+            Array.Copy(pwdBytes, keyBytes, len);
+            rijndaelCipher.Key = keyBytes;
+            rijndaelCipher.IV = keyBytes;
+
+            byte[] plainText = rijndaelCipher.CreateDecryptor().TransformFinalBlock(encryptedData, 0, encryptedData.Length);
+            return Encoding.UTF8.GetString(plainText);
+        }
+    }
+
+    #endregion
+
+    /// <summary>
+    /// 세이브 관리 대상으로 등록
+    /// </summary>
     public static void Register(SaveData data)
     {
         if (data == null)
             return;
 
-        // 중복 등록 방지
-        if (_registeredDatas.Contains(data) == false)
+        if (_saveTargets.Contains(data) == false)
         {
-            _registeredDatas.Add(data);
+            _saveTargets.Add(data);
         }
     }
 
-    public static void UnRegister(SaveData data)
+    /// <summary>
+    /// 세이브 관리 대상에서 해제
+    /// </summary>
+    public static void Unregister(SaveData data)
     {
         if (data == null)
             return;
 
-        if (_registeredDatas.Contains(data))
+        if (_saveTargets.Contains(data))
         {
-            _registeredDatas.Remove(data);
+            _saveTargets.Remove(data);
         }
     }
 
-    public static void ClearAll()
+    /// <summary>
+    /// 비동기 저장
+    /// </summary>
+    public static async Task SaveAsync(SaveData data)
     {
-        _registeredDatas.Clear();
-    }
+        if (data == null)
+            return;
 
-    public static void LoadAll()
-    {
-        for (int i = 0; i < _registeredDatas.Count; i++)
+        string fullPath = GetFullPath(data.FileName);
+        string json = JsonUtility.ToJson(data, true);
+        string encryptedJson = Encrypt(json);
+
+        await Task.Run(() =>
         {
-            _registeredDatas[i].Load(SavePath);
-        }
+            try
+            {
+                File.WriteAllText(fullPath, encryptedJson);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SaverManager] {data.FileName} 저장 중 오류: {ex.Message}");
+            }
+        });
     }
 
+    /// <summary>
+    /// 세이브 관리 대상 모두 저장
+    /// </summary>
     public static async void SaveAll()
     {
-        for (int i = 0; i < _registeredDatas.Count; i++)
+        foreach (SaveData target in _saveTargets)
         {
-            // 리스트가 변경될 수 있으므로 안전하게 접근
-            if (_registeredDatas[i] != null)
+            if (target != null)
             {
-                await _registeredDatas[i].SaveAsync(SavePath);
+                await SaveAsync(target);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 가능하다면 로딩 후 덮어쓰기
+    /// </summary>
+    /// <returns>성공 여부 반환</returns>
+    public static bool TryLoadAndUpdate(SaveData data)
+    {
+        if (data == null)
+            return false;
+
+        string fullPath = GetFullPath(data.FileName);
+
+        if (File.Exists(fullPath))
+        {
+            try
+            {
+                string encryptedJson = File.ReadAllText(fullPath);
+                string json = Decrypt(encryptedJson);
+                JsonUtility.FromJsonOverwrite(json, data);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SaverManager] {data.FileName} 로드 중 오류: {ex.Message}");
             }
         }
 
-        Debug.Log("모든 데이터 저장 완료");
+        return false;
+    }
+
+    /// <summary>
+    /// 파일을 읽어 새로운 데이터 객체를 생성하여 반환
+    /// </summary>
+    public static bool TryLoad<T>(string fileName, out T loaded) where T : SaveData
+    {
+        string fullPath = GetFullPath(fileName);
+
+        if (File.Exists(fullPath) == false)
+        {
+            loaded = null;
+            return false;
+        }
+
+        try
+        {
+            string encryptedJson = File.ReadAllText(fullPath);
+            string json = Decrypt(encryptedJson);
+
+            loaded = JsonUtility.FromJson<T>(json);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[SaverManager] {fileName} 제네릭 로드 중 오류: {ex.Message}");
+
+            loaded = null;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 저장된 파일 삭제
+    /// </summary>
+    public static void DeleteFile(SaveData data)
+    {
+        if (data == null)
+            return;
+
+        string fullPath = GetFullPath(data.FileName);
+
+        if (File.Exists(fullPath))
+        {
+            File.Delete(fullPath);
+        }
     }
 }
