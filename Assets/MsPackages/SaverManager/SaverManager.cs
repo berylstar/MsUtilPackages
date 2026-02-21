@@ -1,185 +1,87 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public class SaverManager : MonoSingleton<SaverManager>
+public static class SaverManager
 {
-    [Header("Settings")]
-    public string saveFileName = "Save0"; // 인스턴스화하는 이름
-    public float saveCycle = 0.5f;
-    public bool isBatchSave = false; // 활성화하면 자동저장기능이 꺼짐 저장을 원할때마다 doStore 함수를 호출
+    private static readonly List<SaveData> _registeredDatas = new List<SaveData>();
 
-    private readonly Dictionary<Saver, SaveData> _saverList = new Dictionary<Saver, SaveData>();
-    private readonly List<Saver> _savers = new List<Saver>();
-
-    private Coroutine _savingCoroutine;
-
-    public string SavePath { get; private set; }
-
-    private bool _isSorted = false;
-    private bool _isNewDataToSave;
-
-    private WaitForSeconds _waitCycle;
-
-    protected override void Awake()
+    private static string _savePath = string.Empty;
+    public static string SavePath
     {
-        base.Awake();
-
-        _waitCycle = new WaitForSeconds(saveCycle);
-        SetSaveName(saveFileName);
-    }
-
-    private void Start()
-    {
-        StartCoroutine(CoRunSaverManager());
-    }
-
-    protected override void OnDestroy()
-    {
-        if (_saverList.Count > 0)
+        get
         {
-            foreach (SaveData data in _saverList.Values)
+            if (string.IsNullOrEmpty(_savePath))
+                Initialize();
+
+            return _savePath;
+        }
+    }
+
+    private static bool _isInitialized = false;
+
+    private static void Initialize()
+    {
+        if (_isInitialized)
+            return;
+
+        _isInitialized = true;
+
+        _savePath = Path.Combine(Application.persistentDataPath, "SaveData");
+
+        if (Directory.Exists(SavePath) == false)
+        {
+            Directory.CreateDirectory(SavePath);
+        }
+    }
+
+    public static void Register(SaveData data)
+    {
+        if (data == null)
+            return;
+
+        // 중복 등록 방지
+        if (_registeredDatas.Contains(data) == false)
+        {
+            _registeredDatas.Add(data);
+        }
+    }
+
+    public static void UnRegister(SaveData data)
+    {
+        if (data == null)
+            return;
+
+        if (_registeredDatas.Contains(data))
+        {
+            _registeredDatas.Remove(data);
+        }
+    }
+
+    public static void ClearAll()
+    {
+        _registeredDatas.Clear();
+    }
+
+    public static void LoadAll()
+    {
+        for (int i = 0; i < _registeredDatas.Count; i++)
+        {
+            _registeredDatas[i].Load(SavePath);
+        }
+    }
+
+    public static async void SaveAll()
+    {
+        for (int i = 0; i < _registeredDatas.Count; i++)
+        {
+            // 리스트가 변경될 수 있으므로 안전하게 접근
+            if (_registeredDatas[i] != null)
             {
-                try
-                {
-                    data.Save(); // 저장 작업 수행
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"Error saving data during OnDestroy: {ex.Message}");
-                }
+                await _registeredDatas[i].SaveAsync(SavePath);
             }
         }
 
-        base.OnDestroy();
-    }
-
-    public IEnumerator CoRunSaverManager()
-    {
-        while (true)
-        {
-            if (_isNewDataToSave)
-            {
-                yield return _waitCycle;
-
-                foreach (SaveData data in _saverList.Values)
-                {
-                    try
-                    {
-                        data.Save(); // 저장 작업 수행
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError($"Error saving data: {ex.Message}");
-                    }
-                }
-
-                _saverList.Clear();
-                _isNewDataToSave = false;
-            }
-
-            yield return new WaitUntil(() => _isNewDataToSave);
-        }
-    }
-
-    public void DoStore()
-    {
-        StartCoroutine(CoDoStoreIE());
-    }
-
-    private IEnumerator CoDoStoreIE()
-    {
-        _isNewDataToSave = true;
-
-        yield return null;
-    }
-
-
-    public void AddSaveDataWithStorege(Saver saver, SaveData saveData)
-    {
-        if (_saverList.ContainsKey(saver))
-        {
-            _saverList[saver] = saveData;
-        }
-        else
-        {
-            _saverList.Add(saver, saveData);
-        }
-
-        if (isBatchSave == false)
-        {
-            _isNewDataToSave = true;
-        }
-    }
-
-    private void SetSaveName(string saveName)
-    {
-        SavePath = Path.Combine(Application.streamingAssetsPath, saveName);
-    }
-
-    public void AddSaverForLoad(Saver saver)
-    {
-        _savers.Add(saver);
-        _isSorted = false;
-    }
-
-    public void LoadAll()
-    {
-        SortSaversByLoadOrder();
-
-        for (int i = 0; i < _savers.Count; i++)
-        {
-            try
-            {
-                _savers[i].Load();  // 데이터를 로드
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Error loading saver {_savers[i]}: {ex.Message}");
-
-            }
-        }
-    }
-
-    public void SaveAll()
-    {
-        if (_savingCoroutine != null)
-        {
-            StopCoroutine(_savingCoroutine);
-        }
-
-        _savingCoroutine = StartCoroutine(SaveAllIE());
-    }
-
-    private IEnumerator SaveAllIE()
-    {
-        SortSaversByLoadOrder();
-
-        for (int i = 0; i < _savers.Count; i++)
-        {
-            try
-            {
-                _savers[i].Save();  // 데이터를 저장
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Error loading saver {_savers[i]}: {ex.Message}");
-            }
-
-            yield return null;
-        }
-
-        Debug.Log("일괄저장 완료");
-    }
-
-    private void SortSaversByLoadOrder()
-    {
-        if (_isSorted == false)
-        {
-            _savers.Sort((s1, s2) => s1.LoadSaveOrder.CompareTo(s2.LoadSaveOrder));
-            _isSorted = true;
-        }
+        Debug.Log("모든 데이터 저장 완료");
     }
 }

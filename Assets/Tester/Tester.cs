@@ -4,40 +4,57 @@ using UnityEngine.InputSystem;
 
 public class Tester : MonoBehaviour
 {
+    public PlayData playDataOne;
+
     private void Start()
     {
-
+        playDataOne = new PlayData(0, 2, 11);
     }
 
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.F1))
         {
-            UIPanel_TesterOne ui = UIManager.Instance.Open<UIPanel_TesterOne>();
-            ui.Initialize();
+            playDataOne.coin.AddValue(1);
         }
 
         if (Input.GetKeyDown(KeyCode.F2))
         {
-            UIManager.Instance.Close<UIPanel_TesterOne>();
+            playDataOne.coin.AddValue(1);
+            _ = playDataOne.SaveAsync(SaverManager.SavePath);
         }
 
         if (Input.GetKeyDown(KeyCode.F3))
         {
-            //bool isActive = UIManager.Instance.TryGet(out UIPanel_TesterOne ui);
-
-            //Debug.Log(isActive);
-            //Debug.Log(ui);
+            playDataOne.Load(SaverManager.SavePath);
         }
 
         if (Input.GetKeyDown(KeyCode.F4))
         {
-            UIPanel_TesterTwo ui = UIManager.Instance.Open<UIPanel_TesterTwo>();
+            playDataOne.Delete(SaverManager.SavePath);
         }
 
         if (Input.GetKeyDown(KeyCode.F5))
         {
-            UIManager.Instance.Close<UIPanel_TesterTwo>();
+
         }
+    }
+}
+
+[Serializable]
+public class PlayData : SaveData
+{
+    protected override string FileName => $"PlayerInfo_{slot}";
+
+    private readonly int slot;
+
+    public Stat<int> coin;
+    public int stage;
+
+    public PlayData(int slot, int coin, int stage)
+    {
+        this.slot = slot;
+        this.coin = new Stat<int>(coin, 0, 99, IntStatOperator.Instance);
+        this.stage = stage;
     }
 }

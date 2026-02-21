@@ -1,46 +1,72 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
+using UnityEngine;
 
-public class SaveData
+[Serializable]
+public abstract class SaveData
 {
-    private readonly string saveName;
-    private readonly string savePath;
+    protected abstract string FileName { get; }
 
-    private string saveJson;
-
-    public SaveData(string path, string name)
+    /// <summary>
+    /// 비동기 데이터 저장
+    /// </summary>
+    public async Task SaveAsync(string path)
     {
-        this.savePath = path;
-        this.saveName = name;
-    }
+        string fullPath = Path.Combine(path, $"{FileName}.txt");
+        string json = JsonUtility.ToJson(this, true); // 보기 편하게 prettyPrint 활성화
 
-    public void SetJson(string json)
-    {
-        saveJson = json;
-    }
-
-    public string GetFullPath()
-    {
-        return $"{savePath}/{saveName}.txt";
-    }
-
-    public async void Save()
-    {
         await Task.Run(() =>
         {
-            if (Directory.Exists(savePath) == false)
+            if (Directory.Exists(path) == false)
             {
-                Directory.CreateDirectory(savePath);
+                Directory.CreateDirectory(path);
             }
 
-            if (saveName.Length > 0)
-            {
-                File.WriteAllTextAsync(GetFullPath(), saveJson);
-            }
-            else
-            {
-                //Debug.LogError("저장할 파일의 이름을 설정하지 않았습니다.");
-            }
+            File.WriteAllText(fullPath, json);
+
+            Debug.Log($"[SAVE] {fullPath}");
         });
+    }
+
+    /// <summary>
+    /// 데이터 로딩
+    /// </summary>
+    public void Load(string path)
+    {
+        string fullPath = Path.Combine(path, $"{FileName}.txt");
+
+        if (File.Exists(fullPath) == false)
+        {
+            // 세이브 파일 없음
+            return;
+        }
+
+        string json = File.ReadAllText(fullPath);
+        JsonUtility.FromJsonOverwrite(json, this); // 현재 인스턴스에 데이터 덮어쓰기
+
+        Debug.Log($"[LOAD] {fullPath}");
+    }
+
+    /// <summary>
+    /// 데이터 제거
+    /// </summary>
+    public void Delete(string path)
+    {
+        string fullPath = Path.Combine(path, $"{FileName}.txt");
+
+        if (File.Exists(fullPath) == false)
+            return;
+
+        try
+        {
+            File.Delete(fullPath);
+
+            Debug.Log($"[DELETE] {fullPath}");
+        }
+        catch (Exception)
+        {
+
+        }
     }
 }
