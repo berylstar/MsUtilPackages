@@ -47,7 +47,7 @@ public abstract class UIPanel : MonoBehaviour, IUICommand
     /// <summary>
     /// 패널 비활성화
     /// </summary>
-    public void Close()
+    public void CloseThis()
     {
         UIManager.Instance.Close(UIType);
     }
