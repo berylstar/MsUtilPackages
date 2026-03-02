@@ -2,17 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum EUIType
-{
-    // 열거형의 값은 소트오더로써 사용
-
-    UIPanel_TesterOne,
-    UIPanel_TesterTwo,
-
-    //--------------------
-    MaxCount
-}
-
 public class UIManager : MonoSingleton<UIManager>
 {
     private const string TAG_UIROOT = "UIRoot";

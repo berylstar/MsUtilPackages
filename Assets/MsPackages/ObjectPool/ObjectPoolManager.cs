@@ -1,11 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public enum EPoolableType
-{
-    None = 0,
-}
-
 public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
 {
     private GameObject _objectHolder;
