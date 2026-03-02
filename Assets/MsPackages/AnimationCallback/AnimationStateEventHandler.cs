@@ -6,25 +6,15 @@ using UnityEngine;
 /// AnimationStateEventBehaviour에 콜백을 등록하는 컴포넌트
 /// </summary>
 [RequireComponent(typeof(Animator))]
-public class AnimationStateEventHandler : MonoBehaviour
+public class AnimationStateEventHandler : MonoBehaviour, IAnimationStateEventCommander
 {
     /// <summary>
     /// Animation State Event 번들 클래스
     /// </summary>
     private class AnimationStateEventBundle
     {
-        private event Action OnEnter;
-        private event Action OnExit;
-
-        public void RegisterOnEnter(Action callback)
-        {
-            OnEnter += callback;
-        }
-
-        public void RegisterOnExit(Action callback)
-        {
-            OnExit += callback;
-        }
+        public event Action OnEnter;
+        public event Action OnExit;
 
         public void InvokeOnEnter()
         {
@@ -42,22 +32,31 @@ public class AnimationStateEventHandler : MonoBehaviour
     /// </summary>
     private readonly Dictionary<EAnimationStateEventKey, AnimationStateEventBundle> eventDict = new();
 
-    public void RegisterEnterCallback(EAnimationStateEventKey key, Action callback)
+    private AnimationStateEventBundle GetOrCreateBundle(EAnimationStateEventKey key)
     {
-        if (callback == null)
-        {
-            return;
-        }
-
         if (eventDict.TryGetValue(key, out AnimationStateEventBundle holder) == false)
         {
             holder = new AnimationStateEventBundle();
             eventDict.Add(key, holder);
         }
 
-        holder.RegisterOnEnter(callback);
+        return holder;
     }
 
+    /// <summary>
+    /// 상태 진입시 콜백 추가
+    /// </summary>
+    public void RegisterEnterCallback(EAnimationStateEventKey key, Action callback)
+    {
+        if (callback == null)
+            return;
+
+        GetOrCreateBundle(key).OnEnter += callback;
+    }
+
+    /// <summary>
+    /// 상태 탈출시 콜백 추가
+    /// </summary>
     public void RegisterExitCallback(EAnimationStateEventKey key, Action callback)
     {
         if (callback == null)
@@ -65,16 +64,21 @@ public class AnimationStateEventHandler : MonoBehaviour
             return;
         }
 
-        if (eventDict.TryGetValue(key, out AnimationStateEventBundle holder) == false)
-        {
-            holder = new AnimationStateEventBundle();
-            eventDict.Add(key, holder);
-        }
-
-        holder.RegisterOnExit(callback);
+        GetOrCreateBundle(key).OnExit += callback;
     }
 
-    public void InvokeEnterCallback(EAnimationStateEventKey key)
+    /// <summary>
+    /// 콜백 전부 제거
+    /// </summary>
+    public void ClearAllCallbacks()
+    {
+        eventDict.Clear();
+    }
+
+    /// <summary>
+    /// 상태 진입 콜백 실행. AnimationStateEventBehaviour에서 실행
+    /// </summary>
+    void IAnimationStateEventCommander.InvokeEnterCallback(EAnimationStateEventKey key)
     {
         if (eventDict.TryGetValue(key, out AnimationStateEventBundle holder))
         {
@@ -82,7 +86,10 @@ public class AnimationStateEventHandler : MonoBehaviour
         }
     }
 
-    public void InvokeExitCallback(EAnimationStateEventKey key)
+    /// <summary>
+    /// 상태 탈출 콜백 실행. AnimationStateEventBehaviour에서 실행
+    /// </summary>
+    void IAnimationStateEventCommander.InvokeExitCallback(EAnimationStateEventKey key)
     {
         if (eventDict.TryGetValue(key, out AnimationStateEventBundle holder))
         {

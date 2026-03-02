@@ -1,14 +1,6 @@
 using UnityEngine;
 
 /// <summary>
-/// Animator State를 식별하기 위한 enum Key
-/// </summary>
-public enum EAnimationStateEventKey
-{
-    
-}
-
-/// <summary>
 /// Animator의 State에 붙는 컴포넌트
 /// 상태 진입/종료 시 AnimationStateEventHandler 콜백 전달
 /// </summary>
@@ -20,18 +12,18 @@ public class AnimationStateEventBehaviour : StateMachineBehaviour
     /// </summary>
     public EAnimationStateEventKey animationCallbackKey;
 
-    private AnimationStateEventHandler handler;
+    private IAnimationStateEventCommander _commander;
 
     /// <summary>
     /// Handler 캐싱
     /// </summary>
     private void EnsureHandler(Animator animator)
     {
-        if (handler == null)
+        if (_commander == null)
         {
-            if (animator.TryGetComponent(out AnimationStateEventHandler getHandler))
+            if (animator.TryGetComponent(out IAnimationStateEventCommander getHandler))
             {
-                handler = getHandler;
+                _commander = getHandler;
             }
         }
     }
@@ -42,7 +34,7 @@ public class AnimationStateEventBehaviour : StateMachineBehaviour
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         EnsureHandler(animator);
-        handler?.InvokeEnterCallback(animationCallbackKey);
+        _commander?.InvokeEnterCallback(animationCallbackKey);
     }
 
     /// <summary>
@@ -51,6 +43,6 @@ public class AnimationStateEventBehaviour : StateMachineBehaviour
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         EnsureHandler(animator);
-        handler?.InvokeExitCallback(animationCallbackKey);
+        _commander?.InvokeExitCallback(animationCallbackKey);
     }
 }
