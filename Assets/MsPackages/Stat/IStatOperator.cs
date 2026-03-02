@@ -26,6 +26,33 @@ public interface IStatOperator<T>
 }
 
 /// <summary>
+/// 정적 생성자에서 연산자를 캐싱하는 클래스
+/// </summary>
+public static class StatOperatorProvider<T>
+{
+    public static readonly IStatOperator<T> Operator;
+
+    static StatOperatorProvider()
+    {
+        var type = typeof(T);
+
+        if (type == typeof(int))
+        {
+            Operator = IntStatOperator.Instance as IStatOperator<T>;
+        }
+        else if (type == typeof(float))
+        {
+            Operator = FloatStatOperator.Instance as IStatOperator<T>;
+        }
+
+        if (Operator == null)
+        {
+            Debug.LogError($"{type.Name} 타입에 대한 StatOperator가 등록되지 않았습니다!");
+        }
+    }
+}
+
+/// <summary>
 /// float 타입 값에 대한 연산 구현
 /// </summary>
 public class FloatStatOperator : IStatOperator<float>

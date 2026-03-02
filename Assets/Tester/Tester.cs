@@ -55,7 +55,7 @@ public class PlayData : Saver
     public PlayData(int slot, int coin, int stage)
     {
         this.slot = slot;
-        this.coin = new Stat<int>(coin, 0, 99, IntStatOperator.Instance);
+        this.coin = new Stat<int>(coin, 0, 99);
         this.stage = stage;
     }
 }

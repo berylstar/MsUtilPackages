@@ -46,11 +46,11 @@ public class Stat<T> where T : IComparable<T>
     // 연산 처리기
     private readonly IStatOperator<T> _iOperator;
 
-    public Stat(T newInitialValue, T newMinValue, T newMaxValue, IStatOperator<T> newIOperator)
+    public Stat(T newInitialValue, T newMinValue, T newMaxValue)
     {
         this._minValue = newMinValue;
         this._maxValue = newMaxValue;
-        this._iOperator = newIOperator;
+        this._iOperator = StatOperatorProvider<T>.Operator;
 
         SetBaseValue(newInitialValue);
 
@@ -60,7 +60,7 @@ public class Stat<T> where T : IComparable<T>
         OnValueChanged = null;
     }
 
-    public Stat(StatData<T> statData) : this(statData.InitialValue, statData.MinValue, statData.MaxValue, statData.GetOperator()) { }
+    public Stat(StatData<T> statData) : this(statData.InitialValue, statData.MinValue, statData.MaxValue) { }
 
     public bool IsEmpty => _iOperator.IsLessThanOrEqual(_currentValue, _minValue);
     public bool IsFull => _iOperator.IsMoreThanOrEqual(_currentValue, _maxValue);

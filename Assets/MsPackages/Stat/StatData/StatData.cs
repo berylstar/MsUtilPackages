@@ -16,6 +16,4 @@ public abstract class StatData<T> : ScriptableObject
 
     [SerializeField] protected T maxValue;
     public T MaxValue => maxValue;
-
-    public abstract IStatOperator<T> GetOperator();
 }
