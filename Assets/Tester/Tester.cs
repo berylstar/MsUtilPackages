@@ -43,7 +43,7 @@ public class Tester : MonoBehaviour
 }
 
 [Serializable]
-public class PlayData : SaveData
+public class PlayData : Saver
 {
     public override string FileName => $"PlayerInfo_{slot}";
 

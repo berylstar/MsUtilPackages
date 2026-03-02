@@ -11,14 +11,14 @@ public static class SaverManager
     /// <summary>
     /// 세이브 관리 대상 해쉬 셋
     /// </summary>
-    private static readonly HashSet<SaveData> _saveTargets = new HashSet<SaveData>();
+    private static readonly HashSet<Saver> _saveTargets = new HashSet<Saver>();
 
     private static string _savePath;
 
     /// <summary>
     /// 세이브 파일 저장 경로
     /// </summary>
-    private static string GetFullPath(string fileName)
+    public static string GetFullPath(string fileName)
     {
         if (string.IsNullOrEmpty(_savePath))
         {
@@ -121,41 +121,42 @@ public static class SaverManager
     /// <summary>
     /// 세이브 관리 대상으로 등록
     /// </summary>
-    public static void Register(SaveData data)
+    public static void Register(Saver saver)
     {
-        if (data == null)
+        if (saver == null)
             return;
 
-        if (_saveTargets.Contains(data) == false)
+        if (_saveTargets.Contains(saver) == false)
         {
-            _saveTargets.Add(data);
+            _saveTargets.Add(saver);
         }
     }
 
     /// <summary>
     /// 세이브 관리 대상에서 해제
     /// </summary>
-    public static void Unregister(SaveData data)
+    public static void Unregister(Saver saver)
     {
-        if (data == null)
+        if (saver == null)
             return;
 
-        if (_saveTargets.Contains(data))
+        if (_saveTargets.Contains(saver))
         {
-            _saveTargets.Remove(data);
+            _saveTargets.Remove(saver);
         }
     }
 
     /// <summary>
     /// 비동기 저장
     /// </summary>
-    public static async Task SaveAsync(SaveData data)
+    public static async Task SaveAsync(Saver saver)
     {
-        if (data == null)
+        if (saver == null)
             return;
 
-        string fullPath = GetFullPath(data.FileName);
-        string json = JsonUtility.ToJson(data, true);
+        string fullPath = GetFullPath(saver.FileName);
+        string json = JsonUtility.ToJson(saver, true);
+        Debug.Log($"[SAVE] {json}");
         string encryptedJson = Encrypt(json);
 
         await Task.Run(() =>
@@ -166,7 +167,7 @@ public static class SaverManager
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SaverManager] {data.FileName} 저장 중 오류: {ex.Message}");
+                Debug.LogError($"[SaverManager] {saver.FileName} 저장 중 오류: {ex.Message}");
             }
         });
     }
@@ -176,7 +177,7 @@ public static class SaverManager
     /// </summary>
     public static async void SaveAll()
     {
-        foreach (SaveData target in _saveTargets)
+        foreach (Saver target in _saveTargets)
         {
             if (target != null)
             {
@@ -186,15 +187,38 @@ public static class SaverManager
     }
 
     /// <summary>
+    /// 저장 여부 확인
+    /// </summary>
+    public static bool HasSaved(Saver saver)
+    {
+        if (saver == null)
+            return false;
+
+        string fullPath = GetFullPath(saver.FileName);
+
+        return File.Exists(fullPath);
+    }
+
+    /// <summary>
+    /// 저장 여부 확인
+    /// </summary>
+    public static bool HasSaved(string fileName)
+    {
+        string fullPath = GetFullPath(fileName);
+
+        return File.Exists(fullPath);
+    }
+
+    /// <summary>
     /// 가능하다면 로딩 후 덮어쓰기
     /// </summary>
     /// <returns>성공 여부 반환</returns>
-    public static bool TryLoadAndUpdate(SaveData data)
+    public static bool TryLoadAndUpdate(Saver saver)
     {
-        if (data == null)
+        if (saver == null)
             return false;
 
-        string fullPath = GetFullPath(data.FileName);
+        string fullPath = GetFullPath(saver.FileName);
 
         if (File.Exists(fullPath))
         {
@@ -202,13 +226,14 @@ public static class SaverManager
             {
                 string encryptedJson = File.ReadAllText(fullPath);
                 string json = Decrypt(encryptedJson);
-                JsonUtility.FromJsonOverwrite(json, data);
+                Debug.Log($"[LOAD] {json}");
 
+                JsonUtility.FromJsonOverwrite(json, saver);
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SaverManager] {data.FileName} 로드 중 오류: {ex.Message}");
+                Debug.LogError($"[SaverManager] {saver.FileName} 로드 중 오류: {ex.Message}");
             }
         }
 
@@ -218,7 +243,7 @@ public static class SaverManager
     /// <summary>
     /// 파일을 읽어 새로운 데이터 객체를 생성하여 반환
     /// </summary>
-    public static bool TryLoad<T>(string fileName, out T loaded) where T : SaveData
+    public static bool TryLoad<T>(string fileName, out T loaded) where T : Saver
     {
         string fullPath = GetFullPath(fileName);
 
@@ -232,6 +257,7 @@ public static class SaverManager
         {
             string encryptedJson = File.ReadAllText(fullPath);
             string json = Decrypt(encryptedJson);
+            Debug.Log($"[LOAD] {json}");
 
             loaded = JsonUtility.FromJson<T>(json);
             return true;
@@ -248,12 +274,25 @@ public static class SaverManager
     /// <summary>
     /// 저장된 파일 삭제
     /// </summary>
-    public static void DeleteFile(SaveData data)
+    public static void DeleteFile(Saver saver)
     {
-        if (data == null)
+        if (saver == null)
             return;
 
-        string fullPath = GetFullPath(data.FileName);
+        string fullPath = GetFullPath(saver.FileName);
+
+        if (File.Exists(fullPath))
+        {
+            File.Delete(fullPath);
+        }
+    }
+
+    /// <summary>
+    /// 저장된 파일 삭제
+    /// </summary>
+    public static void DeleteFile(string fileName)
+    {
+        string fullPath = GetFullPath(fileName);
 
         if (File.Exists(fullPath))
         {
