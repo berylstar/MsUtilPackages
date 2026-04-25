@@ -10,7 +10,7 @@ public class UILocalize : MonoBehaviour
     /// <summary>
     /// 다국어 키
     /// </summary>
-    [SerializeField] private string key;
+    [SerializeField] private LocalizedString key;
 
     private TextMeshProUGUI mainText;
 
@@ -56,7 +56,7 @@ public class UILocalize : MonoBehaviour
     /// <summary>
     /// 다국어 키 새로 설정
     /// </summary>
-    public void SetKey(string newKey)
+    public void SetKey(LocalizedString newKey)
     {
         key = newKey;
 
