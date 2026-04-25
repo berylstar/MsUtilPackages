@@ -20,15 +20,15 @@ public class PoolableBehaviour : MonoBehaviour, IPoolableCommander
     [SerializeField] private MonoBehaviour mainComponent;
     public MonoBehaviour MainComponent => mainComponent;
 
-    /// <summary>
-    /// 풀에서 꺼낼때 처리
-    /// </summary>
-    public event Action OnGetFromPool;
+    ///// <summary>
+    ///// 풀에서 꺼낼때 처리
+    ///// </summary>
+    //public event Action OnGetFromPool;
 
-    /// <summary>
-    /// 풀로 되돌릴때 처리
-    /// </summary>
-    public event Action OnReturnToPool;
+    ///// <summary>
+    ///// 풀로 되돌릴때 처리
+    ///// </summary>
+    //public event Action OnReturnToPool;
 
     /// <summary>
     /// 풀에서 꺼내 사용중인지 여부
@@ -45,7 +45,9 @@ public class PoolableBehaviour : MonoBehaviour, IPoolableCommander
 
         IsUsing = true;
 
-        OnGetFromPool?.Invoke();
+        this.gameObject.SetActive(true);
+
+        //OnGetFromPool?.Invoke();
     }
 
     /// <summary>
@@ -58,7 +60,9 @@ public class PoolableBehaviour : MonoBehaviour, IPoolableCommander
 
         IsUsing = false;
 
-        OnReturnToPool?.Invoke();
+        this.gameObject.SetActive(false);
+
+        //OnReturnToPool?.Invoke();
     }
 
     /// <summary>
@@ -66,6 +70,6 @@ public class PoolableBehaviour : MonoBehaviour, IPoolableCommander
     /// </summary>
     public void ReturnToPool()
     {
-        ObjectPoolManager.Instance.ReturnToPool(this);
+        ObjectPoolManager.ReturnToPool(this);
     }
 }

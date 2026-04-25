@@ -1,35 +1,73 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
+public static class ObjectPoolManager
 {
-    private GameObject _objectHolder;
-
-    private readonly Dictionary<EPoolableType, Queue<PoolableBehaviour>> _poolableDict = new();
-
-    private const int DEFAULT_POOL_COUNT = 5;
+    private static GameObject _objectHolder;
 
     /// <summary>
-    /// Poolable 오브젝트의 리소스 경로
+    /// Resources에서 불러온 게임 오브젝트 캐싱 딕셔너리
     /// </summary>
-    private string GetPoolablePath(EPoolableType poolableType)
+    private static readonly Dictionary<EPoolableType, GameObject> _resourceDict = new();
+
+    /// <summary>
+    /// 현재 풀링한 오브젝트 딕셔너리
+    /// </summary>
+    private static readonly Dictionary<EPoolableType, Queue<PoolableBehaviour>> _poolableDict = new();
+
+    /// <summary>
+    /// 현재 풀링한 갯수 딕셔너리
+    /// </summary>
+    private static readonly Dictionary<EPoolableType, int> _poolingCountDict = new();
+
+    private static bool _isInitialized = false;
+
+    /// <summary>
+    /// ScriptableObject로부터 프리팹 리소스를 사전에 딕셔너리로 구축
+    /// </summary>
+    public static void Initialize()
     {
-        return poolableType switch
+        if (_isInitialized) return;
+
+        // SO 로드 (경로는 프로젝트 상황에 맞게 수정)
+        PoolableResourcesData resourceData = Utils.Load<PoolableResourcesData>("ResourceData/PoolableResourcesData");
+
+        if (resourceData == null)
         {
-            _ => string.Empty
-        };
+            Debug.LogError("[ObjectPoolManager] PoolableResourcesData 로드 실패!");
+            return;
+        }
+
+        _resourceDict.Clear();
+
+        // LINQ를 사용하지 않고 반복문으로 딕셔너리 채우기
+        for (int i = 0; i < resourceData.poolableResourceList.Count; i++)
+        {
+            PoolableResource data = resourceData.poolableResourceList[i];
+
+            if (data.poolableObject == null)
+                continue;
+
+            if (_resourceDict.ContainsKey(data.poolableType) == false)
+            {
+                _resourceDict.Add(data.poolableType, data.poolableObject);
+            }
+        }
+
+        _isInitialized = true;
     }
 
     /// <summary>
     /// 오브젝트 풀에서 꺼내기
     /// </summary>
-    public PoolableBehaviour GetFromPool(EPoolableType poolableType)
+    public static PoolableBehaviour GetFromPool(EPoolableType poolableType)
     {
         // 오브젝트 홀더가 없을 때
         if (_objectHolder == null)
         {
             _objectHolder = new GameObject("@ObjectHolder");
             _poolableDict.Clear();
+            _poolingCountDict.Clear();
         }
 
         if (_poolableDict.ContainsKey(poolableType) == false)
@@ -39,7 +77,7 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
 
         if (_poolableDict[poolableType].Count < 1)
         {
-            CreatePoolables(poolableType, DEFAULT_POOL_COUNT);
+            CreatePoolables(poolableType);
         }
 
         PoolableBehaviour poolable = _poolableDict[poolableType].Dequeue();
@@ -56,22 +94,46 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
     }
 
     /// <summary>
+    /// 오브젝트 풀에서 꺼내고 포지션 설정. 이펙트 풀링시 사용
+    /// </summary>
+    public static void GetFromPool(EPoolableType poolableType, Vector2 poolPosition)
+    {
+        PoolableBehaviour poolable = GetFromPool(poolableType);
+        poolable.transform.position = poolPosition;
+    }
+
+    /// <summary>
     /// 풀에 보관할 오브젝트 생성
     /// </summary>
-    private void CreatePoolables(EPoolableType poolableType, int poolCount)
+    private static void CreatePoolables(EPoolableType poolableType)
     {
-        string path = GetPoolablePath(poolableType);
-        GameObject prefab = Utils.Load<GameObject>(path);
-
-        if (prefab == null)
+        if (_resourceDict.TryGetValue(poolableType, out GameObject prefab) == false)
         {
-            Debug.LogError($"[ObjectPoolManager] Failed to load prefab at: {path}");
+            Debug.LogError($"[ObjectPoolManager] 등록되지 않은 풀링 타입입니다: {poolableType}");
             return;
         }
 
+        if (prefab == null)
+        {
+            Debug.LogError($"[ObjectPoolManager] Failed to load prefab : {poolableType}");
+            return;
+        }
+
+        // 지수적 증가 방식
+        if (_poolingCountDict.TryGetValue(poolableType, out int poolCount) == false)
+        {
+            poolCount = 1;
+        }
+        else
+        {
+            poolCount *= 2;
+        }
+
+        _poolingCountDict[poolableType] = poolCount;
+
         for (int i = 0; i < poolCount; i++)
         {
-            GameObject instance = Instantiate(prefab, _objectHolder.transform);
+            GameObject instance = GameObject.Instantiate(prefab, _objectHolder.transform);
             instance.SetActive(false);
 
             if (instance.TryGetComponent(out PoolableBehaviour component))
@@ -83,7 +145,7 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
                 Debug.LogError($"[ObjectPoolManager] Component {typeof(PoolableBehaviour)} not found on {prefab.name}");
 
                 // 잘못된 오브젝트는 파괴
-                Destroy(instance);
+                GameObject.Destroy(instance);
                 break;
             }
         }
@@ -92,7 +154,7 @@ public class ObjectPoolManager : MonoSingleton<ObjectPoolManager>
     /// <summary>
     /// 오브젝트 풀로 반환
     /// </summary>
-    public void ReturnToPool(PoolableBehaviour poolable)
+    public static void ReturnToPool(PoolableBehaviour poolable)
     {
         if (poolable == null)
             return;
