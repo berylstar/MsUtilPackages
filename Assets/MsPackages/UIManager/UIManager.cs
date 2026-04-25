@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class UIManager : MonoSingleton<UIManager>
+public static class UIManager
 {
     private const string TAG_UIROOT = "UIRoot";
     private const string PATH_UIPREFAB = "UIPrefabs/";
@@ -10,19 +10,19 @@ public class UIManager : MonoSingleton<UIManager>
     /// <summary>
     /// 생성된 UI 패널 딕셔너리
     /// </summary>
-    private readonly Dictionary<EUIType, UIPanel> _activeUIs = new Dictionary<EUIType, UIPanel>();
+    private static readonly Dictionary<EUIType, UIPanel> _activeUIs = new Dictionary<EUIType, UIPanel>();
 
     /// <summary>
     /// Generic 타입으로 Enum 찾기 위한 성능 최적화용 캐시 딕셔너리
     /// </summary>
-    private readonly Dictionary<Type, EUIType> _typeCache = new Dictionary<Type, EUIType>();
+    private static readonly Dictionary<Type, EUIType> _typeCache = new Dictionary<Type, EUIType>();
 
-    private Transform _uiRoot;
+    private static Transform _uiRoot;
 
     /// <summary>
     /// 씬에 배치되는 캔버스
     /// </summary>
-    public Transform UIRoot
+    public static Transform UIRoot
     {
         get
         {
@@ -40,7 +40,7 @@ public class UIManager : MonoSingleton<UIManager>
     /// </summary>
     /// <typeparam name="T">UIPanel을 상속받은 클래스</typeparam>
     /// <returns>생성 또는 활성화된 UI 패널</returns>
-    public T Open<T>() where T : UIPanel
+    public static T Open<T>() where T : UIPanel
     {
         EUIType uiType = GetUIType<T>();
 
@@ -54,7 +54,7 @@ public class UIManager : MonoSingleton<UIManager>
                 throw new Exception($"[UIManager] NOT EXISTED PREFAB : {uiType}");
             }
 
-            GameObject uiObject = Instantiate(uiResource, UIRoot);
+            GameObject uiObject = GameObject.Instantiate(uiResource, UIRoot);
 
             panel = uiObject.GetComponent<UIPanel>();
 
@@ -75,7 +75,7 @@ public class UIManager : MonoSingleton<UIManager>
     /// <summary>
     /// UI 패널 비활성화
     /// </summary>
-    public void Close<T>() where T : UIPanel
+    public static void Close<T>() where T : UIPanel
     {
         Close(GetUIType<T>());
     }
@@ -83,7 +83,7 @@ public class UIManager : MonoSingleton<UIManager>
     /// <summary>
     /// UI 패널 비활성화
     /// </summary>
-    public void Close(EUIType uiType)
+    public static void Close(EUIType uiType)
     {
         if (TryGet(uiType, out UIPanel uiPanel))
         {
@@ -97,7 +97,7 @@ public class UIManager : MonoSingleton<UIManager>
     /// <summary>
     /// 활성화된 모든 UI 패널 비활성화
     /// </summary>
-    public void CloseAll()
+    public static void CloseAll()
     {
         foreach (EUIType uiType in _activeUIs.Keys)
         {
@@ -108,13 +108,13 @@ public class UIManager : MonoSingleton<UIManager>
     /// <summary>
     /// 활성화된 모든 UI 패널 제거
     /// </summary>
-    public void ClearAll()
+    public static void ClearAll()
     {
         foreach (UIPanel panel in _activeUIs.Values)
         {
             if (panel != null)
             {
-                Destroy(panel.gameObject);
+                GameObject.Destroy(panel.gameObject);
             }
         }
 
@@ -124,7 +124,7 @@ public class UIManager : MonoSingleton<UIManager>
     /// <summary>
     /// 클래스 이름과 동일한 Enum 값을 리플렉션으로 찾아 캐싱
     /// </summary>
-    private EUIType GetUIType<T>() where T : UIPanel
+    private static EUIType GetUIType<T>() where T : UIPanel
     {
         if (_typeCache.TryGetValue(typeof(T), out EUIType uiType) == false)
         {
@@ -144,7 +144,7 @@ public class UIManager : MonoSingleton<UIManager>
     /// <summary>
     /// 활성화된 UI 패널 반환
     /// </summary>
-    private bool TryGet<T>(EUIType uiType, out T uiReturn) where T : UIPanel
+    public static bool TryGet<T>(EUIType uiType, out T uiReturn) where T : UIPanel
     {
         if (_activeUIs.TryGetValue(uiType, out UIPanel uiPanel))
         {
@@ -171,7 +171,7 @@ public class UIManager : MonoSingleton<UIManager>
     /// <summary>
     /// EUIType 열거형 값에 따라 우선순위 소팅
     /// </summary>
-    private void SortByType()
+    private static void SortByType()
     {
         for (int i = 0; i < (int)EUIType.MaxCount; i++)
         {

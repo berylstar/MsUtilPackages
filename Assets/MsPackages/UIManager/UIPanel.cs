@@ -44,12 +44,19 @@ public abstract class UIPanel : MonoBehaviour, IUICommand
         }
     }
 
+    private void OnDestroy()
+    {
+        // 활성화 상태라면 파괴되었을 때 닫기 시퀀스 실행 (씬 이동)
+        if (IsActivated)
+            PlayCloseSequence(null);
+    }
+
     /// <summary>
     /// 패널 비활성화
     /// </summary>
     public void CloseThis()
     {
-        UIManager.Instance.Close(UIType);
+        UIManager.Close(UIType);
     }
 
     #region IUICommand
@@ -78,9 +85,11 @@ public abstract class UIPanel : MonoBehaviour, IUICommand
         if (IsActivated == false)
             return;
 
+        // 닫기 시퀀스의 트윈으로 인해 콜백이 작동 안할 수도 있기 때문에, 여기서 비활성화
+        IsActivated = false;
+
         PlayCloseSequence(() =>
         {
-            IsActivated = false;
             this.gameObject.SetActive(false);
         });
     }

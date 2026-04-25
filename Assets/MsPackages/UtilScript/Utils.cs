@@ -18,6 +18,20 @@ public static class Utils
 #endif
     }
 
+    public static void Log(params object[] messages)
+    {
+#if UNITY_EDITOR
+        string log = string.Empty;
+
+        for (int i = 0; i < messages.Length; i++)
+        {
+            log += $"\t{messages[i]}";
+        }
+
+        Debug.Log($"[LOG] {log}");
+#endif
+    }
+
     #region Scene Management
     /// <summary>
     /// buildIndex 기반으로 현재 씬 타입 반환
