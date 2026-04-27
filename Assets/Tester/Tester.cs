@@ -4,58 +4,40 @@ using UnityEngine.InputSystem;
 
 public class Tester : MonoBehaviour
 {
-    public PlayData playDataOne;
+    private int test01;
+    public IntStat coin;
+    [SerializeField] private Vector3 test02;
 
     private void Start()
     {
-        playDataOne = new PlayData(0, 2, 11);
+        coin = new IntStat(0, 0, 100);
     }
 
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.F1))
         {
-            playDataOne.coin.AddValue(1);
+            coin.AddValue(1);
         }
 
         if (Input.GetKeyDown(KeyCode.F2))
         {
-            playDataOne.coin.AddValue(1);
-            _ = SaverManager.SaveAsync(playDataOne);
+            coin.SubtractValue(1);
         }
 
         if (Input.GetKeyDown(KeyCode.F3))
         {
-            bool isUpdated = SaverManager.TryLoadAndUpdate(playDataOne);
-            Debug.Log(isUpdated);
+            coin.MultiplyValue(2);
         }
 
         if (Input.GetKeyDown(KeyCode.F4))
         {
-            SaverManager.DeleteFile(playDataOne);
+            coin.DivideValue(2);
         }
 
         if (Input.GetKeyDown(KeyCode.F5))
         {
-            playDataOne.stage += 1;
+
         }
-    }
-}
-
-[Serializable]
-public class PlayData : Saver
-{
-    public override string FileName => $"PlayerInfo_{slot}";
-
-    private readonly int slot;
-
-    public Stat<int> coin;
-    public int stage;
-
-    public PlayData(int slot, int coin, int stage)
-    {
-        this.slot = slot;
-        this.coin = new IntStat(coin, 0, 99);
-        this.stage = stage;
     }
 }

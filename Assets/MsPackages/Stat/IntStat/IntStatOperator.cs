@@ -21,6 +21,18 @@ public class IntStatOperator : IStatOperator<int>
     public int Subtract(int a, int b) => a - b;
     public int Multiply(int a, int b) => a * b;
     public int Divide(int a, int b) => b != 0 ? a / b : 0;
+
+    public int AddFloat(int a, float b) => a + Mathf.RoundToInt(b);
+    public int SubtractFloat(int a, float b) => a - Mathf.RoundToInt(b);
+    public int MultiplyFloat(int a, float b) => Mathf.RoundToInt(a * b);
+    public int DivideFloat(int a, float b)
+    {
+        if (Mathf.Approximately(b, 0f))
+            return 0;
+
+        return Mathf.RoundToInt(a / b);
+    }
+
     public int AddOne(int a) => a + 1;
     public int Clamp(int value, int min, int max) => Mathf.Clamp(value, min, max);
 

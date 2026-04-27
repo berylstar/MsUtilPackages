@@ -8,25 +8,26 @@ using UnityEngine;
 [Serializable]
 public abstract class Stat<T> where T : IComparable<T>
 {
-    [SerializeField, InspectorReadonly] protected T _baseValue;
+    [SerializeField] protected T _baseValue;
+    [SerializeField] protected T _minValue;
+    [SerializeField] protected T _maxValue;         
+    [SerializeField] protected T _currentValue;
+
     /// <summary>
     /// 기본 값 - 수정자를 적용하지 않은 기본 값
     /// </summary>
     public T BaseValue => _baseValue;
 
-    [SerializeField, InspectorReadonly] protected T _minValue;
     /// <summary>
     /// 최솟값
     /// </summary>
     public T MinValue => _minValue;
 
-    [SerializeField, InspectorReadonly] protected T _maxValue;         
     /// <summary>
     /// 최댓값
     /// </summary>
     public T MaxValue => _maxValue;
 
-    [SerializeField, InspectorReadonly] protected T _currentValue;
     /// <summary>
     /// 현재 값 - 모든 수정자가 적용된 최종 사용 값
     /// </summary>
@@ -38,7 +39,9 @@ public abstract class Stat<T> where T : IComparable<T>
     public event Action<Stat<T>> OnValueChanged;
 
     // 최초 기본 값
-    private readonly T _initialValue;
+    private readonly T _initialBaseValue;
+    private readonly T _initialMinValue;
+    private readonly T _initialMaxValue;
 
     // 스탯 수정자 리스트
     private readonly List<StatModifier<T>> _modifiers = new List<StatModifier<T>>();
@@ -48,16 +51,17 @@ public abstract class Stat<T> where T : IComparable<T>
 
     protected Stat(T newInitialValue, T newMinValue, T newMaxValue, IStatOperator<T> newOperator)
     {
-        this._minValue = newMinValue;
-        this._maxValue = newMaxValue;
+        this._initialBaseValue = newInitialValue;
+        this._initialMinValue = newMinValue;
+        this._initialMaxValue = newMaxValue;
         this._iOperator = newOperator;
 
-        SetBaseValue(newInitialValue);
-
-        _initialValue = this._baseValue;
-        _currentValue = this._baseValue;
+        this._minValue = newMinValue;
+        this._maxValue = newMaxValue;
 
         OnValueChanged = null;
+
+        SetBaseValue(newInitialValue);
     }
 
     public bool IsEmpty => _iOperator.IsLessThanOrEqual(_currentValue, _minValue);
@@ -86,7 +90,9 @@ public abstract class Stat<T> where T : IComparable<T>
     /// </summary>
     public void Reset()
     {
-        _baseValue = _iOperator.Clamp(_initialValue, _minValue, _maxValue);  // SetBaseValue();
+        _baseValue = _initialBaseValue;
+        _minValue = _initialMinValue;
+        _maxValue = _initialMaxValue;
 
         if (_modifiers.Count > 0)    // ClearModifiers();
         {
