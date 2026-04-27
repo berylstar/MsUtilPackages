@@ -5,9 +5,6 @@ using UnityEngine;
 /// </summary>
 public abstract class StatData<T> : ScriptableObject
 {
-    [SerializeField] protected EStatType type;
-    public EStatType Type => type;
-
     [SerializeField] protected T initialValue;
     public T InitialValue => initialValue;
 
