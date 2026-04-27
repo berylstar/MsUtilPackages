@@ -37,11 +37,6 @@ public class LocalizationGoogleSheetsToCSV : EditorWindow
         /// 활성화 여부
         /// </summary>
         public bool isEnabled = true;
-
-        /// <summary>
-        /// CSV 변환 여부
-        /// </summary>
-        public bool autoConvertFormat = true;
     }
 
     private LocalizationSheet currentSheet;
@@ -251,7 +246,6 @@ public class LocalizationGoogleSheetsToCSV : EditorWindow
                     currentSheet.sheetId = EditorGUILayout.TextField("Google Sheets ID", currentSheet.sheetId);
                     currentSheet.gid = EditorGUILayout.TextField("GID", currentSheet.gid);
                     currentSheet.outputFileName = EditorGUILayout.TextField("출력 파일명", currentSheet.outputFileName);
-                    currentSheet.autoConvertFormat = EditorGUILayout.Toggle("TSV → CSV 변환", currentSheet.autoConvertFormat);
 
                     if (string.IsNullOrEmpty(currentSheet.outputFileName) && string.IsNullOrEmpty(currentSheet.sheetName) == false)
                     {
@@ -336,7 +330,7 @@ public class LocalizationGoogleSheetsToCSV : EditorWindow
 
     private string GetDownloadUrl(LocalizationSheet sheet)
     {
-        return $"https://docs.google.com/spreadsheets/d/{sheet.sheetId}/export?format=csv&gid={sheet.gid}";
+        return $"https://docs.google.com/spreadsheets/d/{sheet.sheetId}/export?format=tsv&gid={sheet.gid}";
     }
 
     private async Task PreviewSheetAsync(LocalizationSheet sheet)
@@ -350,7 +344,7 @@ public class LocalizationGoogleSheetsToCSV : EditorWindow
 
             if (string.IsNullOrEmpty(content) == false)
             {
-                string processedContent = sheet.autoConvertFormat ? ConvertToQuotedCSV(content) : content;
+                string processedContent = ConvertToQuotedCSV(content);
 
                 // 처음 10줄만 미리보기
                 string[] lines = processedContent.Split('\n');
@@ -388,11 +382,8 @@ public class LocalizationGoogleSheetsToCSV : EditorWindow
 
             if (string.IsNullOrEmpty(content) == false)
             {
-                // TSV를 CSV로 변환 (필요한 경우)  
-                if (sheet.autoConvertFormat)
-                {
-                    content = ConvertToQuotedCSV(content);
-                }
+                //TSV를 CSV로 변환
+                content = ConvertToQuotedCSV(content);
 
                 SaveToFile(sheet, content);
             }

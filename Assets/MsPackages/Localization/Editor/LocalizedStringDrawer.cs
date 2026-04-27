@@ -44,11 +44,11 @@ public class LocalizedStringDrawer : PropertyDrawer
         {
             // 한국어 표시
             string korValue = LocalizationManager.Get(keyValue, ELanguage.KOR);
-            EditorGUI.LabelField(korRect, $"[KOR] {korValue}", previewStyle);
+            EditorGUI.LabelField(korRect, $"[KOR]   {korValue}", previewStyle);
 
             // 영어 표시
             string engValue = LocalizationManager.Get(keyValue, ELanguage.ENG);
-            EditorGUI.LabelField(engRect, $"[ENG] {engValue}", previewStyle);
+            EditorGUI.LabelField(engRect, $"[ENG]   {engValue}", previewStyle);
         }
         else
         {
@@ -67,7 +67,7 @@ public class LocalizationTools
         LocalizationManager.Initialize();
 
         // 사용자 피드백을 위해 로그와 알림 표시
-        Debug.Log("<color=cyan>[Localization]</color> Manager Initialized via Tools Menu.");
+        Debug.Log("<color=cyan>[Localization]</color> 다국어 최신화");
 
         //// 유니티 오른쪽 하단에 잠시 나타나는 알림창
         //SceneView.lastActiveSceneView.ShowNotification(new GUIContent("Localization Initialized!"));

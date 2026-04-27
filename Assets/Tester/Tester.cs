@@ -1,11 +1,12 @@
 using System;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using TMPro;
 
 public class Tester : MonoBehaviour
 {
     public IntStat attack;
     public FloatStat ticker;
+    public TextMeshProUGUI text;
 
     private void Start()
     {
@@ -21,6 +22,8 @@ public class Tester : MonoBehaviour
                 _stat.SetFull();
             }
         });
+
+        text.text = string.Format(LocalizationManager.Get("CoffinShop_RestockInfo"), 4);
     }
 
     private void Update()

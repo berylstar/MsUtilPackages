@@ -113,7 +113,7 @@ public static class LocalizationManager
         if (string.IsNullOrEmpty(key))
             return string.Empty;
 
-        // 캐싱된 테이블에서 즉시 조회 (최적화)
+        // 캐싱된 테이블에서 즉시 조회
         if (_currentTable != null)
         {
             if (_currentTable.TryGetValue(key, out string value))

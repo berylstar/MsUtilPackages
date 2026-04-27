@@ -72,6 +72,7 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
 
         SetBaseValue(newInitialValue);
 
+        // 생성 시점에 단 1회만 캐스팅
         _instance = (TStat)this;
     }
 
@@ -322,9 +323,9 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
 
         result = _iOperator.Clamp(result, _minValue, _maxValue);
 
+        // 실제 값의 변동이 생겼을 때 콜백 발생
         if (_iOperator.IsEqual(_currentValue, result) == false)
         {
-            // 실제 값의 변동이 생겼을 때 콜백 발생
             _currentValue = result;
             OnValueChanged?.Invoke(_instance);
         }
