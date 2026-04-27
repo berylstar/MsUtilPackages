@@ -11,14 +11,11 @@ public class Tester : MonoBehaviour
     {
         coin = new IntStat(0, 0, 100);
 
-        ticker = new FloatStat(0, 0, 1f);
+        ticker = new FloatStat(1f, 0, 1f);
         ticker.RegisterListener((_stat) =>
         {
-            if (_stat.IsEmpty)
-            {
-                Debug.Log("Tick Empty " + ticker);
-                _stat.SetFull();
-            }
+            Debug.Log("Tick Empty " + ticker);
+            _stat.SetFull();
         });
     }
 

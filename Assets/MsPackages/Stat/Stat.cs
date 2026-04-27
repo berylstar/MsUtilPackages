@@ -6,7 +6,7 @@ using UnityEngine;
 /// 스탯 제너릭 클래스
 /// </summary>
 [Serializable]
-public abstract class Stat<T> where T : IComparable<T>
+public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat<T, TStat>
 {
     [SerializeField] protected T _baseValue;
     [SerializeField] protected T _minValue;
@@ -36,7 +36,7 @@ public abstract class Stat<T> where T : IComparable<T>
     /// <summary>
     /// 현재 값이 변경되었을 때 호출되는 이벤트
     /// </summary>
-    public event Action<Stat<T>> OnValueChanged;
+    public event Action<TStat> OnValueChanged;
 
     // 최초 기본 값
     private readonly T _initialBaseValue;
@@ -48,6 +48,8 @@ public abstract class Stat<T> where T : IComparable<T>
 
     // 연산 처리기
     protected readonly IStatOperator<T> _iOperator;
+
+    private readonly TStat _instance;
 
     protected Stat(T newInitialValue, T newMinValue, T newMaxValue, IStatOperator<T> newOperator)
     {
@@ -62,6 +64,8 @@ public abstract class Stat<T> where T : IComparable<T>
         OnValueChanged = null;
 
         SetBaseValue(newInitialValue);
+
+        _instance = (TStat)this;
     }
 
     public bool IsEmpty => _iOperator.IsLessThanOrEqual(_currentValue, _minValue);
@@ -314,24 +318,24 @@ public abstract class Stat<T> where T : IComparable<T>
         if (_iOperator.IsEqual(_currentValue, result) == false)
         {
             _currentValue = result;
-            OnValueChanged?.Invoke(this);
+            OnValueChanged?.Invoke(_instance);
         }
     }
 
     /// <summary>
     /// 새 콜백 등록하고 호출
     /// </summary>
-    public void RegisterListener(Action<Stat<T>> listener)
+    public void RegisterListener(Action<TStat> listener)
     {
         OnValueChanged += listener;
 
-        listener?.Invoke(this);
+        listener?.Invoke(_instance);
     }
 
     /// <summary>
     /// 콜백 해제
     /// </summary>
-    public void UnregisterListener(Action<Stat<T>> listener)
+    public void UnregisterListener(Action<TStat> listener)
     {
         OnValueChanged -= listener;
     }
