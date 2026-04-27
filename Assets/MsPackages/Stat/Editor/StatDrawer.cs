@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 [CustomPropertyDrawer(typeof(IntStat))]
-//[CustomPropertyDrawer(typeof(FloatStat))]
+[CustomPropertyDrawer(typeof(FloatStat))]
 public class StatDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)

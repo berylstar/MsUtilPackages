@@ -4,13 +4,22 @@ using UnityEngine.InputSystem;
 
 public class Tester : MonoBehaviour
 {
-    private int test01;
     public IntStat coin;
-    [SerializeField] private Vector3 test02;
+    public FloatStat ticker;
 
     private void Start()
     {
         coin = new IntStat(0, 0, 100);
+
+        ticker = new FloatStat(0, 0, 1f);
+        ticker.RegisterListener((_stat) =>
+        {
+            if (_stat.IsEmpty)
+            {
+                Debug.Log("Tick Empty " + ticker);
+                _stat.SetFull();
+            }
+        });
     }
 
     private void Update()
@@ -37,7 +46,9 @@ public class Tester : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.F5))
         {
-
+            Debug.Log(coin.ToString());
         }
+
+        ticker.SubtractValue(Time.deltaTime);
     }
 }

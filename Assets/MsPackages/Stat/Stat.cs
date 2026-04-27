@@ -68,6 +68,7 @@ public abstract class Stat<T> where T : IComparable<T>
     public bool IsFull => _iOperator.IsMoreThanOrEqual(_currentValue, _maxValue);
     public bool IsValid => _iOperator.IsMoreThan(_currentValue, _minValue);
     public float Ratio => _iOperator.Ratio(_currentValue, _minValue, _maxValue);
+    public T Remain => _iOperator.Subtract(MaxValue, CurrentValue);
 
     /// <summary>
     /// 현재 값과의 차이
@@ -174,15 +175,15 @@ public abstract class Stat<T> where T : IComparable<T>
         SetBaseValue(_baseValue);
     }
 
-    //public void AddMinValue(T amount)
-    //{
-    //    SetMinValue(_iOperator.Add(_minValue, amount));
-    //}
+    public void AddMinValue(T amount)
+    {
+        SetMinValue(_iOperator.Add(_minValue, amount));
+    }
 
-    //public void SubtractMinValue(T amount)
-    //{
-    //    SetMinValue(_iOperator.Subtract(_minValue, amount));
-    //}
+    public void SubtractMinValue(T amount)
+    {
+        SetMinValue(_iOperator.Subtract(_minValue, amount));
+    }
     #endregion
 
     #region Max Value
@@ -194,15 +195,15 @@ public abstract class Stat<T> where T : IComparable<T>
         SetBaseValue(_baseValue);
     }
 
-    //public void AddMaxValue(T amount)
-    //{
-    //    SetMaxValue(_iOperator.Add(_maxValue, amount));
-    //}
+    public void AddMaxValue(T amount)
+    {
+        SetMaxValue(_iOperator.Add(_maxValue, amount));
+    }
 
-    //public void SubtractMaxValue(T amount)
-    //{
-    //    SetMaxValue(_iOperator.Subtract(_maxValue, amount));
-    //}
+    public void SubtractMaxValue(T amount)
+    {
+        SetMaxValue(_iOperator.Subtract(_maxValue, amount));
+    }
     #endregion
 
     #region Modifier
@@ -341,5 +342,10 @@ public abstract class Stat<T> where T : IComparable<T>
     public void ClearListener()
     {
         OnValueChanged = null;
+    }
+
+    public override string ToString()
+    {
+        return $"Base: {_baseValue}\t[{_minValue} ~ {_maxValue}]\t=> Curr: {_currentValue}";
     }
 }
