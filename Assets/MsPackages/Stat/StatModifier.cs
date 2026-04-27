@@ -11,7 +11,7 @@ public enum EStatModifierType
     Flat,
 
     /// <summary>
-    /// 합산형 곱셈 : * (1 + PercentAdd 합산 값)
+    /// 단리형 곱셈 : * (1 + PercentAdd 합산 값)
     /// </summary>
     PercentAdd,
 
@@ -25,7 +25,7 @@ public enum EStatModifierType
 /// 제너릭 타입 스탯 수정자
 /// </summary>
 [Serializable]
-public class StatModifier
+public readonly struct StatModifier
 {
     /// <summary>
     /// 수정자 타입

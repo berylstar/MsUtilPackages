@@ -4,18 +4,22 @@ using UnityEngine.InputSystem;
 
 public class Tester : MonoBehaviour
 {
-    public IntStat coin;
+    public IntStat attack;
     public FloatStat ticker;
 
     private void Start()
     {
-        coin = new IntStat(0, 0, 100);
+        attack = new IntStat(0, 0, 100);
 
-        ticker = new FloatStat(1f, 0, 1f);
+        ticker = new FloatStat(1f, 0, 3f);
         ticker.RegisterListener((_stat) =>
         {
-            Debug.Log("Tick Empty " + ticker);
-            _stat.SetFull();
+            if (_stat.IsEmpty)
+            {
+                attack.ClearModifiers();
+
+                _stat.SetFull();
+            }
         });
     }
 
@@ -23,27 +27,27 @@ public class Tester : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.F1))
         {
-            coin.AddValue(1);
+            attack.AddValue(1);
         }
 
         if (Input.GetKeyDown(KeyCode.F2))
         {
-            coin.SubtractValue(1);
+            attack.SubtractValue(1);
         }
 
         if (Input.GetKeyDown(KeyCode.F3))
         {
-            coin.MultiplyValue(2);
+            attack.AddModifier(new StatModifier(10, EStatModifierType.Flat, 0, 1));
         }
 
         if (Input.GetKeyDown(KeyCode.F4))
         {
-            coin.DivideValue(2);
+            attack.AddModifier(new StatModifier(0.5f, EStatModifierType.PercentMult, 1, 2));
         }
 
         if (Input.GetKeyDown(KeyCode.F5))
         {
-            Debug.Log(coin.ToString());
+
         }
 
         ticker.SubtractValue(Time.deltaTime);

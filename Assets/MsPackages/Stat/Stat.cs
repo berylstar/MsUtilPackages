@@ -36,19 +36,26 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
     /// <summary>
     /// 현재 값이 변경되었을 때 호출되는 이벤트
     /// </summary>
-    public event Action<TStat> OnValueChanged;
+    private event Action<TStat> OnValueChanged;
 
     // 최초 기본 값
     private readonly T _initialBaseValue;
     private readonly T _initialMinValue;
     private readonly T _initialMaxValue;
 
-    // 스탯 수정자 리스트
+    /// <summary>
+    /// 현재 적용 중인 스탯 수정자 리스트
+    /// </summary>
     private readonly List<StatModifier> _modifiers = new List<StatModifier>();
 
-    // 연산 처리기
+    /// <summary>
+    /// 제너릭 사칙연산을 수행하기 위한 객체
+    /// </summary>
     protected readonly IStatOperator<T> _iOperator;
 
+    /// <summary>
+    /// 스탯 캐싱
+    /// </summary>
     private readonly TStat _instance;
 
     protected Stat(T newInitialValue, T newMinValue, T newMaxValue, IStatOperator<T> newOperator)
@@ -175,7 +182,7 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
     {
         _minValue = newMinValue;
 
-        // baseValue 재설정
+        // 최솟값 변경시 baseValue 재설정
         SetBaseValue(_baseValue);
     }
 
@@ -195,7 +202,7 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
     {
         _maxValue = newMaxValue;
 
-        // baseValue 재설정
+        // 최댓값 변경시 baseValue 재설정
         SetBaseValue(_baseValue);
     }
 
@@ -244,6 +251,7 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
     {
         bool removed = false;
 
+        // 여러 수정자가 있을 수 있기 때문에 역순 순회
         for (int i = _modifiers.Count - 1; i >= 0; i--)
         {
             if (_modifiers[i].SourceId == sourceId)
@@ -299,12 +307,11 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
                     if (i + 1 < _modifiers.Count && _modifiers[i + 1].Type == EStatModifierType.PercentAdd)
                     {
                         // 다음 PercentAdd 수정자까지 합산 계속
+                        continue;
                     }
-                    else
-                    {
-                        result = _iOperator.MultiplyFloat(result, 1f + sumPercentAdd);
-                        sumPercentAdd = 0f;
-                    }
+
+                    result = _iOperator.MultiplyFloat(result, 1f + sumPercentAdd);
+                    sumPercentAdd = 0f;
                     break;
 
                 case EStatModifierType.PercentMult:
@@ -317,6 +324,7 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
 
         if (_iOperator.IsEqual(_currentValue, result) == false)
         {
+            // 실제 값의 변동이 생겼을 때 콜백 발생
             _currentValue = result;
             OnValueChanged?.Invoke(_instance);
         }
@@ -325,11 +333,15 @@ public abstract class Stat<T, TStat> where T : IComparable<T> where TStat : Stat
     /// <summary>
     /// 새 콜백 등록하고 호출
     /// </summary>
-    public void RegisterListener(Action<TStat> listener)
+    public void RegisterListener(Action<TStat> listener, bool isInvoke = true)
     {
         OnValueChanged += listener;
 
-        listener?.Invoke(_instance);
+        // 등록 즉시 현재 상태 반영
+        if (isInvoke)
+        {
+            listener?.Invoke(_instance);
+        }
     }
 
     /// <summary>
