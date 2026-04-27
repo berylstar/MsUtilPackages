@@ -94,15 +94,6 @@ public static class ObjectPoolManager
     }
 
     /// <summary>
-    /// 오브젝트 풀에서 꺼내고 포지션 설정. 이펙트 풀링시 사용
-    /// </summary>
-    public static void GetFromPool(EPoolableType poolableType, Vector2 poolPosition)
-    {
-        PoolableBehaviour poolable = GetFromPool(poolableType);
-        poolable.transform.position = poolPosition;
-    }
-
-    /// <summary>
     /// 풀에 보관할 오브젝트 생성
     /// </summary>
     private static void CreatePoolables(EPoolableType poolableType)
