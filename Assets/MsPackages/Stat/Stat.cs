@@ -6,27 +6,27 @@ using UnityEngine;
 /// 스탯 제너릭 클래스
 /// </summary>
 [Serializable]
-public class Stat<T> where T : IComparable<T>
+public abstract class Stat<T> where T : IComparable<T>
 {
-    [SerializeField, InspectorReadonly] private T _baseValue;
+    [SerializeField, InspectorReadonly] protected T _baseValue;
     /// <summary>
     /// 기본 값 - 수정자를 적용하지 않은 기본 값
     /// </summary>
     public T BaseValue => _baseValue;
 
-    [SerializeField, InspectorReadonly] private T _minValue;
+    [SerializeField, InspectorReadonly] protected T _minValue;
     /// <summary>
     /// 최솟값
     /// </summary>
     public T MinValue => _minValue;
 
-    [SerializeField, InspectorReadonly] private T _maxValue;         
+    [SerializeField, InspectorReadonly] protected T _maxValue;         
     /// <summary>
     /// 최댓값
     /// </summary>
     public T MaxValue => _maxValue;
 
-    [SerializeField, InspectorReadonly] private T _currentValue;
+    [SerializeField, InspectorReadonly] protected T _currentValue;
     /// <summary>
     /// 현재 값 - 모든 수정자가 적용된 최종 사용 값
     /// </summary>
@@ -44,13 +44,13 @@ public class Stat<T> where T : IComparable<T>
     private readonly List<StatModifier<T>> _modifiers = new List<StatModifier<T>>();
 
     // 연산 처리기
-    private readonly IStatOperator<T> _iOperator;
+    protected readonly IStatOperator<T> _iOperator;
 
-    public Stat(T newInitialValue, T newMinValue, T newMaxValue)
+    protected Stat(T newInitialValue, T newMinValue, T newMaxValue, IStatOperator<T> newOperator)
     {
         this._minValue = newMinValue;
         this._maxValue = newMaxValue;
-        this._iOperator = StatOperatorProvider<T>.Operator;
+        this._iOperator = newOperator;
 
         SetBaseValue(newInitialValue);
 
@@ -59,8 +59,6 @@ public class Stat<T> where T : IComparable<T>
 
         OnValueChanged = null;
     }
-
-    public Stat(StatData<T> statData) : this(statData.InitialValue, statData.MinValue, statData.MaxValue) { }
 
     public bool IsEmpty => _iOperator.IsLessThanOrEqual(_currentValue, _minValue);
     public bool IsFull => _iOperator.IsMoreThanOrEqual(_currentValue, _maxValue);
