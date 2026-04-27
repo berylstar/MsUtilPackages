@@ -25,7 +25,7 @@ public enum EStatModifierType
 /// 제너릭 타입 스탯 수정자
 /// </summary>
 [Serializable]
-public class StatModifier<T>
+public class StatModifier
 {
     /// <summary>
     /// 수정자 타입
@@ -35,7 +35,7 @@ public class StatModifier<T>
     /// <summary>
     /// 수정자 값
     /// </summary>
-    public T Value { get; }
+    public float Value { get; }
 
     /// <summary>
     /// 수정자 우선 순위
@@ -47,7 +47,7 @@ public class StatModifier<T>
     /// </summary>
     public int SourceId { get; }
 
-    public StatModifier(T value, EStatModifierType type, int order, int sourceId)
+    public StatModifier(float value, EStatModifierType type, int order, int sourceId)
     {
         this.Value = value;
         this.Type = type;

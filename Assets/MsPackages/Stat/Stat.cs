@@ -44,7 +44,7 @@ public abstract class Stat<T> where T : IComparable<T>
     private readonly T _initialMaxValue;
 
     // 스탯 수정자 리스트
-    private readonly List<StatModifier<T>> _modifiers = new List<StatModifier<T>>();
+    private readonly List<StatModifier> _modifiers = new List<StatModifier>();
 
     // 연산 처리기
     protected readonly IStatOperator<T> _iOperator;
@@ -209,7 +209,7 @@ public abstract class Stat<T> where T : IComparable<T>
     /// <summary>
     /// 수정자 추가
     /// </summary>
-    public void AddModifier(StatModifier<T> modifier)
+    public void AddModifier(StatModifier modifier)
     {
         _modifiers.Add(modifier);
         _modifiers.Sort((a, b) => a.Order.CompareTo(b.Order)); // 우선순위에 따라 정렬
@@ -220,7 +220,7 @@ public abstract class Stat<T> where T : IComparable<T>
     /// <summary>
     /// 수정자 제거
     /// </summary>
-    public bool RemoveModifier(StatModifier<T> modifier)
+    public bool RemoveModifier(StatModifier modifier)
     {
         bool removed = _modifiers.Remove(modifier);
 
@@ -276,20 +276,20 @@ public abstract class Stat<T> where T : IComparable<T>
     private void UpdateCurrentValue()
     {
         T result = _baseValue;
-        T sumPercentAdd = _iOperator.Zero;
+        float sumPercentAdd = 0f;
 
         for (int i = 0; i < _modifiers.Count; i++)
         {
-            StatModifier<T> modifier = _modifiers[i];
+            StatModifier modifier = _modifiers[i];
 
             switch (modifier.Type)
             {
                 case EStatModifierType.Flat:
-                    result = _iOperator.Add(result, modifier.Value);
+                    result = _iOperator.AddFloat(result, modifier.Value);
                     break;
 
                 case EStatModifierType.PercentAdd:
-                    sumPercentAdd = _iOperator.Add(sumPercentAdd, modifier.Value);
+                    sumPercentAdd += modifier.Value;
 
                     if (i + 1 < _modifiers.Count && _modifiers[i + 1].Type == EStatModifierType.PercentAdd)
                     {
@@ -297,13 +297,13 @@ public abstract class Stat<T> where T : IComparable<T>
                     }
                     else
                     {
-                        result = _iOperator.Multiply(result, _iOperator.AddOne(sumPercentAdd));
-                        sumPercentAdd = _iOperator.Zero;
+                        result = _iOperator.MultiplyFloat(result, 1f + sumPercentAdd);
+                        sumPercentAdd = 0f;
                     }
                     break;
 
                 case EStatModifierType.PercentMult:
-                    result = _iOperator.Multiply(result, _iOperator.AddOne(modifier.Value));
+                    result = _iOperator.MultiplyFloat(result, 1f + modifier.Value);
                     break;
             }
         }
