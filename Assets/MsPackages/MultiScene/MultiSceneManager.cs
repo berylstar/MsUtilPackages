@@ -92,17 +92,17 @@ public class MultiSceneManager : MonoBehaviour
         }
 
         // 4. 플랜에 등록된 로드 대상 씬들 추가
-        foreach (var kvp in plan.ScenesToLoad)
+        foreach ((string currSlot, string currScene) in plan.ScenesToLoad)
         {
-            if (Application.CanStreamedLevelBeLoaded(kvp.Value) == false)
+            if (Application.CanStreamedLevelBeLoaded(currScene) == false)
             {
-                Debug.LogError($"[{kvp.Value}] 씬을 찾을 수 없습니다. Build Settings를 확인하세요.");
+                Debug.LogError($"[{currScene}] 씬을 찾을 수 없습니다. Build Settings를 확인하세요.");
                 continue;
             }
 
-            yield return CoUnloadScene(kvp.Key);
+            yield return CoUnloadScene(currSlot);
 
-            yield return CoLoadAdditiveScene(kvp.Key, kvp.Value, plan.ActiveSceneName == kvp.Value);
+            yield return CoLoadAdditiveScene(currSlot, currScene, plan.ActiveSceneName == currScene);
         }
 
         // 5. 화면 가림 해제 연출 처리
@@ -118,7 +118,7 @@ public class MultiSceneManager : MonoBehaviour
     /// <summary>
     /// 씬을 Additive 모드로 비동기 로드하는 코루틴
     /// </summary>
-    private IEnumerator CoLoadAdditiveScene(string slotKey, string sceneName, bool setActive)
+    private IEnumerator CoLoadAdditiveScene(string slotKey, string sceneName, bool isActiveScene)
     {
         AsyncOperation loadOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
 
@@ -143,7 +143,7 @@ public class MultiSceneManager : MonoBehaviour
         }
 
         // 로드된 씬을 유니티의 활성 씬으로 지정할지 결정
-        if (setActive)
+        if (isActiveScene)
         {
             Scene newScene = SceneManager.GetSceneByName(sceneName);
             if (newScene.IsValid() && newScene.isLoaded)
