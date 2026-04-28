@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,6 +8,7 @@ public enum EScene
 {
     // 열거형의 값은 Build Settings의 Scene Index
     None = -1,
+
     Core = 0,
     TesterScene = 1,
     TesterTwoScene = 2,
@@ -40,25 +42,9 @@ public class MultiSceneManager : MonoBehaviour
     /// <summary>
     /// 현재 씬 전환 작업이 진행 중인지 확인하는 플래그
     /// </summary>
-    public bool _isBusy = false;
+    private bool _isBusy = false;
 
     private readonly SceneTransitionPlan _transitionPlan = new SceneTransitionPlan();
-
-    /// <summary>
-    /// buildIndex 기반으로 현재 씬 타입 반환
-    /// </summary>
-    public static EScene GetActiveScene()
-    {
-        return (EScene)SceneManager.GetActiveScene().buildIndex;
-    }
-
-    /// <summary>
-    /// 씬 전환
-    /// </summary>
-    public static void LoadScene(EScene sceneName)
-    {
-        SceneManager.LoadScene((int)sceneName);
-    }
 
     /// <summary>
     /// 빌더 패턴을 시작하기 위한 트랜지션 객체 생성
@@ -97,42 +83,33 @@ public class MultiSceneManager : MonoBehaviour
     /// </summary>
     private IEnumerator CoTransitionScene(SceneTransitionPlan plan)
     {
-        // 1. 화면 가림 연출 처리
-        if (plan.IsOverlayed)
-        {
-            //yield return new WaitForSeconds(0.5f);
-        }
-
-        // 2. 등록된 언로드 대상 씬 모두 내림
-        foreach (string slotkey in plan.ScenesToUnload)
+        // 1. 등록된 언로드 대상 씬 모두 내림
+        foreach (string slotkey in plan.SlotKeysToUnload)
         {
             yield return CoUnloadScene(slotkey);
         }
 
-        // 3. 미사용 에셋 메모리 정리
+        // 2. 미사용 에셋 메모리 정리
         if (plan.IsClearingUnusedAssets)
         {
             yield return CoCleanupUnusedAssets();
         }
 
-        // 4. 플랜에 등록된 로드 대상 씬들 추가
+        // 3. 플랜에 등록된 로드 대상 씬들 추가
         foreach ((string currSlot, EScene currType) in plan.ScenesToLoad)
         {
+            // 빌드 세팅 누락 검사
             if (Application.CanStreamedLevelBeLoaded((int)currType) == false)
             {
                 Debug.LogError($"[{currType}] 씬을 찾을 수 없습니다. Build Settings를 확인하세요.");
                 continue;
             }
 
+            // 해당 슬롯의 씬 언로드
             yield return CoUnloadScene(currSlot);
 
-            yield return CoLoadAdditiveScene(currSlot, currType, plan.ActiveSceneType == currType);
-        }
-
-        // 5. 화면 가림 해제 연출 처리
-        if (plan.IsOverlayed)
-        {
-            //yield return loadingOverlay.FadeOutBlack();
+            // 비동기 로드
+            yield return CoLoadAdditiveScene(currSlot, currType, plan.ActiveSceneType == currType, plan.OnProgressUpdated);
         }
 
         // 씬 전환 작업 종료 후 플래그 해제
@@ -142,7 +119,7 @@ public class MultiSceneManager : MonoBehaviour
     /// <summary>
     /// 씬을 Additive 모드로 비동기 로드하는 코루틴
     /// </summary>
-    private IEnumerator CoLoadAdditiveScene(string slotKey, EScene sceneType, bool isActiveScene)
+    private IEnumerator CoLoadAdditiveScene(string slotKey, EScene sceneType, bool isActiveScene, Action<float> callbackProgress)
     {
         int sceneIndex = (int)sceneType;
         AsyncOperation loadOp = SceneManager.LoadSceneAsync(sceneIndex, LoadSceneMode.Additive);
@@ -155,25 +132,28 @@ public class MultiSceneManager : MonoBehaviour
 
         while (loadOp.progress < 0.9f)
         {
+            callbackProgress?.Invoke(loadOp.progress);
+
             yield return null;
         }
 
         // 로딩 완료 후 씬 활성화 허용
+        callbackProgress?.Invoke(1f);
         loadOp.allowSceneActivation = true;
 
-        // 완전히 로드될 때까지 대기
+        // 완전히 메모리에 올라가고 활성화될 때까지 대기
         while (loadOp.isDone == false)
         {
             yield return null;
         }
 
-        // 로드된 씬을 유니티의 활성 씬으로 지정할지 결정
+        // 로드된 씬을 유니티의 Active Scene으로 지정할지 결정
         if (isActiveScene)
         {
-            Scene newScene = SceneManager.GetSceneByBuildIndex(sceneIndex);
-            if (newScene.IsValid() && newScene.isLoaded)
+            Scene loadedScene = SceneManager.GetSceneByBuildIndex(sceneIndex);
+            if (loadedScene.IsValid() && loadedScene.isLoaded)
             {
-                SceneManager.SetActiveScene(newScene);
+                SceneManager.SetActiveScene(loadedScene);
             }
         }
 
@@ -234,7 +214,7 @@ public class MultiSceneManager : MonoBehaviour
         /// <summary>
         /// 언로드할 슬롯 키를 담는 리스트
         /// </summary>
-        public List<string> ScenesToUnload { get; } = new List<string>();
+        public List<string> SlotKeysToUnload { get; } = new List<string>();
 
         /// <summary>
         /// 씬 로드 완료 후 Active Scene으로 지정할 씬의 이름
@@ -247,9 +227,9 @@ public class MultiSceneManager : MonoBehaviour
         public bool IsClearingUnusedAssets { get; private set; } = false;
 
         /// <summary>
-        /// 화면 가림 연출 사용 여부
+        /// 씬 로딩 진행률 콜백
         /// </summary>
-        public bool IsOverlayed { get; private set; } = false;
+        public Action<float> OnProgressUpdated;
 
         /// <summary>
         /// 초기화
@@ -257,10 +237,10 @@ public class MultiSceneManager : MonoBehaviour
         public void Clear()
         {
             ScenesToLoad.Clear();
-            ScenesToUnload.Clear();
+            SlotKeysToUnload.Clear();
             ActiveSceneType = EScene.None;
             IsClearingUnusedAssets = false;
-            IsOverlayed = false;
+            OnProgressUpdated = null;
         }
 
         /// <summary>
@@ -283,17 +263,7 @@ public class MultiSceneManager : MonoBehaviour
         /// </summary>
         public SceneTransitionPlan Unload(string slotkey)
         {
-            ScenesToUnload.Add(slotkey);
-
-            return this;
-        }
-
-        /// <summary>
-        /// 씬 전환 연출 사용 옵션 설정
-        /// </summary>
-        public SceneTransitionPlan ShowOverlay()
-        {
-            IsOverlayed = true;
+            SlotKeysToUnload.Add(slotkey);
 
             return this;
         }
@@ -304,6 +274,16 @@ public class MultiSceneManager : MonoBehaviour
         public SceneTransitionPlan ClearUnusedAssets()
         {
             IsClearingUnusedAssets = true;
+
+            return this;
+        }
+
+        /// <summary>
+        /// 씬 로딩 진행률 콜백 추가
+        /// </summary>
+        public SceneTransitionPlan RegisterOnProgress(Action<float> callbackProgress)
+        {
+            OnProgressUpdated = callbackProgress;
 
             return this;
         }
