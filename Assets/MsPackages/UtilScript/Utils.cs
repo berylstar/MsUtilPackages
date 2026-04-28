@@ -4,11 +4,6 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 
-public enum EScene
-{
-    // 열거형의 값은 Build Settings의 Scene Index
-}
-
 public static class Utils
 {
     public static void Log(object message, string header = "LOG")

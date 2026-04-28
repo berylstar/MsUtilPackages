@@ -3,6 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+public enum EScene
+{
+    // 열거형의 값은 Build Settings의 Scene Index
+    None = -1,
+    Core = 0,
+    TesterScene = 1,
+    TesterTwoScene = 2,
+}
+
 public class MultiSceneManager : MonoBehaviour
 {
     #region Singleton
@@ -26,7 +35,7 @@ public class MultiSceneManager : MonoBehaviour
     /// <summary>
     /// 슬롯을 키로 하여 로드된 씬 이름을 관리하는 딕셔너리
     /// </summary>
-    private readonly Dictionary<string, string> _loadedSceneBySlot = new Dictionary<string, string>();
+    private readonly Dictionary<string, EScene> _loadedSceneBySlot = new Dictionary<string, EScene>();
 
     /// <summary>
     /// 현재 씬 전환 작업이 진행 중인지 확인하는 플래그
@@ -34,6 +43,22 @@ public class MultiSceneManager : MonoBehaviour
     public bool _isBusy = false;
 
     private readonly SceneTransitionPlan _transitionPlan = new SceneTransitionPlan();
+
+    /// <summary>
+    /// buildIndex 기반으로 현재 씬 타입 반환
+    /// </summary>
+    public static EScene GetActiveScene()
+    {
+        return (EScene)SceneManager.GetActiveScene().buildIndex;
+    }
+
+    /// <summary>
+    /// 씬 전환
+    /// </summary>
+    public static void LoadScene(EScene sceneName)
+    {
+        SceneManager.LoadScene((int)sceneName);
+    }
 
     /// <summary>
     /// 빌더 패턴을 시작하기 위한 트랜지션 객체 생성
@@ -75,8 +100,7 @@ public class MultiSceneManager : MonoBehaviour
         // 1. 화면 가림 연출 처리
         if (plan.IsOverlayed)
         {
-            //yield return loadingOverlay.FadeInBlack();
-            yield return new WaitForSeconds(0.5f);
+            //yield return new WaitForSeconds(0.5f);
         }
 
         // 2. 등록된 언로드 대상 씬 모두 내림
@@ -92,17 +116,17 @@ public class MultiSceneManager : MonoBehaviour
         }
 
         // 4. 플랜에 등록된 로드 대상 씬들 추가
-        foreach ((string currSlot, string currScene) in plan.ScenesToLoad)
+        foreach ((string currSlot, EScene currType) in plan.ScenesToLoad)
         {
-            if (Application.CanStreamedLevelBeLoaded(currScene) == false)
+            if (Application.CanStreamedLevelBeLoaded((int)currType) == false)
             {
-                Debug.LogError($"[{currScene}] 씬을 찾을 수 없습니다. Build Settings를 확인하세요.");
+                Debug.LogError($"[{currType}] 씬을 찾을 수 없습니다. Build Settings를 확인하세요.");
                 continue;
             }
 
             yield return CoUnloadScene(currSlot);
 
-            yield return CoLoadAdditiveScene(currSlot, currScene, plan.ActiveSceneName == currScene);
+            yield return CoLoadAdditiveScene(currSlot, currType, plan.ActiveSceneType == currType);
         }
 
         // 5. 화면 가림 해제 연출 처리
@@ -118,9 +142,10 @@ public class MultiSceneManager : MonoBehaviour
     /// <summary>
     /// 씬을 Additive 모드로 비동기 로드하는 코루틴
     /// </summary>
-    private IEnumerator CoLoadAdditiveScene(string slotKey, string sceneName, bool isActiveScene)
+    private IEnumerator CoLoadAdditiveScene(string slotKey, EScene sceneType, bool isActiveScene)
     {
-        AsyncOperation loadOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        int sceneIndex = (int)sceneType;
+        AsyncOperation loadOp = SceneManager.LoadSceneAsync(sceneIndex, LoadSceneMode.Additive);
 
         if (loadOp == null)
             yield break;
@@ -145,7 +170,7 @@ public class MultiSceneManager : MonoBehaviour
         // 로드된 씬을 유니티의 활성 씬으로 지정할지 결정
         if (isActiveScene)
         {
-            Scene newScene = SceneManager.GetSceneByName(sceneName);
+            Scene newScene = SceneManager.GetSceneByBuildIndex(sceneIndex);
             if (newScene.IsValid() && newScene.isLoaded)
             {
                 SceneManager.SetActiveScene(newScene);
@@ -153,7 +178,7 @@ public class MultiSceneManager : MonoBehaviour
         }
 
         // 딕셔너리에 현재 로드된 슬롯과 씬 이름 정보 갱신
-        _loadedSceneBySlot[slotKey] = sceneName;
+        _loadedSceneBySlot[slotKey] = sceneType;
     }
 
     /// <summary>
@@ -161,13 +186,13 @@ public class MultiSceneManager : MonoBehaviour
     /// </summary>
     private IEnumerator CoUnloadScene(string slotKey)
     {
-        if (_loadedSceneBySlot.TryGetValue(slotKey, out string sceneName) == false)
+        if (_loadedSceneBySlot.TryGetValue(slotKey, out EScene sceneType) == false)
             yield break;
 
-        if (string.IsNullOrEmpty(sceneName))
+        if (sceneType == EScene.None)
             yield break;
 
-        AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(sceneName);
+        AsyncOperation unloadOp = SceneManager.UnloadSceneAsync((int)sceneType);
 
         if (unloadOp != null)
         {
@@ -204,7 +229,7 @@ public class MultiSceneManager : MonoBehaviour
         /// <summary>
         /// 로드할 씬의 정보를 담는 딕셔너리 (슬롯 - 씬 이름)
         /// </summary>
-        public Dictionary<string, string> ScenesToLoad { get; } = new Dictionary<string, string>();
+        public Dictionary<string, EScene> ScenesToLoad { get; } = new Dictionary<string, EScene>();
 
         /// <summary>
         /// 언로드할 슬롯 키를 담는 리스트
@@ -214,7 +239,7 @@ public class MultiSceneManager : MonoBehaviour
         /// <summary>
         /// 씬 로드 완료 후 Active Scene으로 지정할 씬의 이름
         /// </summary>
-        public string ActiveSceneName { get; private set; } = string.Empty;
+        public EScene ActiveSceneType { get; private set; } = EScene.None;
 
         /// <summary>
         /// 씬 전환 도중 미사용 메모리를 정리할 지 여부
@@ -233,7 +258,7 @@ public class MultiSceneManager : MonoBehaviour
         {
             ScenesToLoad.Clear();
             ScenesToUnload.Clear();
-            ActiveSceneName = string.Empty;
+            ActiveSceneType = EScene.None;
             IsClearingUnusedAssets = false;
             IsOverlayed = false;
         }
@@ -241,13 +266,13 @@ public class MultiSceneManager : MonoBehaviour
         /// <summary>
         /// 로드할 씬을 플랜에 추가
         /// </summary>
-        public SceneTransitionPlan Load(string slotKey, string sceneName, bool isActiveScene = false)
+        public SceneTransitionPlan Load(string slotKey, EScene sceneType, bool isActiveScene = false)
         {
-            ScenesToLoad[slotKey] = sceneName;
+            ScenesToLoad[slotKey] = sceneType;
 
             if (isActiveScene)
             {
-                ActiveSceneName = sceneName;
+                ActiveSceneType = sceneType;
             }
 
             return this;
