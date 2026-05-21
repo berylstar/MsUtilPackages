@@ -4,16 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public enum EScene
-{
-    // 열거형의 값은 Build Settings의 Scene Index
-    None = -1,
-
-    Core = 0,
-    TesterScene = 1,
-    TesterTwoScene = 2,
-}
-
 public class MultiSceneManager : MonoBehaviour
 {
     #region Singleton
@@ -44,6 +34,9 @@ public class MultiSceneManager : MonoBehaviour
     /// </summary>
     private bool _isBusy = false;
 
+    /// <summary>
+    /// 재사용을 위한 트랜지션 플랜
+    /// </summary>
     private readonly SceneTransitionPlan _transitionPlan = new SceneTransitionPlan();
 
     /// <summary>
@@ -111,6 +104,9 @@ public class MultiSceneManager : MonoBehaviour
             // 비동기 로드
             yield return CoLoadAdditiveScene(currSlot, currType, plan.ActiveSceneType == currType, plan.OnProgressUpdated);
         }
+
+        // 완료 콜백
+        plan.OnCompleted?.Invoke();
 
         // 씬 전환 작업 종료 후 플래그 해제
         _isBusy = false;
@@ -232,6 +228,11 @@ public class MultiSceneManager : MonoBehaviour
         public Action<float> OnProgressUpdated;
 
         /// <summary>
+        /// 씬 로딩 완료 콜백
+        /// </summary>
+        public Action OnCompleted;
+
+        /// <summary>
         /// 초기화
         /// </summary>
         public void Clear()
@@ -241,6 +242,7 @@ public class MultiSceneManager : MonoBehaviour
             ActiveSceneType = EScene.None;
             IsClearingUnusedAssets = false;
             OnProgressUpdated = null;
+            OnCompleted = null;
         }
 
         /// <summary>
@@ -284,6 +286,16 @@ public class MultiSceneManager : MonoBehaviour
         public SceneTransitionPlan RegisterOnProgress(Action<float> callbackProgress)
         {
             OnProgressUpdated = callbackProgress;
+
+            return this;
+        }
+
+        /// <summary>
+        /// 씬 로딩 완료 콜백 추가
+        /// </summary>
+        public SceneTransitionPlan RegisterOnCompleted(Action callbackCompleted)
+        {
+            OnCompleted = callbackCompleted;
 
             return this;
         }
