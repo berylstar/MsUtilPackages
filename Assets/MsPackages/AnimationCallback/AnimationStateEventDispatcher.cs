@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// AnimationStateEventBehaviour에 콜백을 등록하는 컴포넌트
+/// Animation의 StateEventBehaviour에 콜백을 등록받고, 콜백 이벤트를 분배하는 클래스
 /// </summary>
 [RequireComponent(typeof(Animator))]
-public class AnimationStateEventHandler : MonoBehaviour, IAnimationStateEventCommander
+public class AnimationStateEventDispatcher : MonoBehaviour, IAnimationStateListener
 {
     /// <summary>
     /// Animation State Event 번들 클래스
     /// </summary>
-    private class AnimationStateEventBundle
+    private class StateEventCallbacks
     {
         public event Action OnEnter;
         public event Action OnExit;
@@ -30,14 +30,14 @@ public class AnimationStateEventHandler : MonoBehaviour, IAnimationStateEventCom
     /// <summary>
     /// 애니매이션 Key별 콜백 딕셔너리
     /// </summary>
-    private readonly Dictionary<EAnimationStateEventKey, AnimationStateEventBundle> eventDict = new();
+    private readonly Dictionary<EAnimationStateEventKey, StateEventCallbacks> _eventDict = new();
 
-    private AnimationStateEventBundle GetOrCreateBundle(EAnimationStateEventKey key)
+    private StateEventCallbacks GetOrCreateBundle(EAnimationStateEventKey key)
     {
-        if (eventDict.TryGetValue(key, out AnimationStateEventBundle holder) == false)
+        if (_eventDict.TryGetValue(key, out StateEventCallbacks holder) == false)
         {
-            holder = new AnimationStateEventBundle();
-            eventDict.Add(key, holder);
+            holder = new StateEventCallbacks();
+            _eventDict.Add(key, holder);
         }
 
         return holder;
@@ -72,15 +72,15 @@ public class AnimationStateEventHandler : MonoBehaviour, IAnimationStateEventCom
     /// </summary>
     public void ClearAllCallbacks()
     {
-        eventDict.Clear();
+        _eventDict.Clear();
     }
 
     /// <summary>
     /// 상태 진입 콜백 실행. AnimationStateEventBehaviour에서 실행
     /// </summary>
-    void IAnimationStateEventCommander.InvokeEnterCallback(EAnimationStateEventKey key)
+    void IAnimationStateListener.OnStateEnter(EAnimationStateEventKey key)
     {
-        if (eventDict.TryGetValue(key, out AnimationStateEventBundle holder))
+        if (_eventDict.TryGetValue(key, out StateEventCallbacks holder))
         {
             holder.InvokeOnEnter();
         }
@@ -89,9 +89,9 @@ public class AnimationStateEventHandler : MonoBehaviour, IAnimationStateEventCom
     /// <summary>
     /// 상태 탈출 콜백 실행. AnimationStateEventBehaviour에서 실행
     /// </summary>
-    void IAnimationStateEventCommander.InvokeExitCallback(EAnimationStateEventKey key)
+    void IAnimationStateListener.OnStateExit(EAnimationStateEventKey key)
     {
-        if (eventDict.TryGetValue(key, out AnimationStateEventBundle holder))
+        if (_eventDict.TryGetValue(key, out StateEventCallbacks holder))
         {
             holder.InvokeOnExit();
         }

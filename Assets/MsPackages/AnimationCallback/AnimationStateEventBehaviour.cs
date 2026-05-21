@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Animator의 State에 붙는 컴포넌트
-/// 상태 진입/종료 시 AnimationStateEventHandler 콜백 전달
+/// 상태 진입/종료 시 AnimationStateEventDisaptcher 콜백 전달
 /// </summary>
 public class AnimationStateEventBehaviour : StateMachineBehaviour
 {
@@ -12,19 +12,26 @@ public class AnimationStateEventBehaviour : StateMachineBehaviour
     /// </summary>
     public EAnimationStateEventKey animationCallbackKey;
 
-    private IAnimationStateEventCommander _commander;
+    /// <summary>
+    /// Animator가 부착된 게임 오브젝트의 AnimationStateEventDisaptcher
+    /// </summary>
+    private IAnimationStateListener _listener;
+
+    /// <summary>
+    /// 리스너 탐색 확인 플래그
+    /// </summary>
+    private bool _isListenerChecked = false;
 
     /// <summary>
     /// Handler 캐싱
     /// </summary>
-    private void EnsureHandler(Animator animator)
+    private void EnsureListener(Animator animator)
     {
-        if (_commander == null)
+        if (_isListenerChecked == false)
         {
-            if (animator.TryGetComponent(out IAnimationStateEventCommander getHandler))
-            {
-                _commander = getHandler;
-            }
+            animator.TryGetComponent<IAnimationStateListener>(out _listener);
+
+            _isListenerChecked = true;
         }
     }
 
@@ -33,8 +40,9 @@ public class AnimationStateEventBehaviour : StateMachineBehaviour
     /// </summary>
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        EnsureHandler(animator);
-        _commander?.InvokeEnterCallback(animationCallbackKey);
+        EnsureListener(animator);
+
+        _listener?.OnStateEnter(animationCallbackKey);
     }
 
     /// <summary>
@@ -42,7 +50,8 @@ public class AnimationStateEventBehaviour : StateMachineBehaviour
     /// </summary>
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        EnsureHandler(animator);
-        _commander?.InvokeExitCallback(animationCallbackKey);
+        EnsureListener(animator);
+
+        _listener?.OnStateExit(animationCallbackKey);
     }
 }
