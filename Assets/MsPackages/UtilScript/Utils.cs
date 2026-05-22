@@ -297,6 +297,16 @@ public static class Utils
     }
     #endregion
 
+    #region Color
+    /// <summary>
+    /// 현재 색상의 보색 반환합니다. 알파 값은 유지.
+    /// </summary>
+    public static Color GetComplementaryColor(in Color color)
+    {
+        return new Color(1.0f - color.r, 1.0f - color.g, 1.0f - color.b, color.a);
+    }
+    #endregion
+
     #region JSON
     #endregion
 
