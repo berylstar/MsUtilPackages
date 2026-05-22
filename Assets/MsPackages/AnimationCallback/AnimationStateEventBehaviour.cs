@@ -10,7 +10,7 @@ public class AnimationStateEventBehaviour : StateMachineBehaviour
     /// 해당 Animation State의 enum Key
     /// Animation 윈도우에서 매핑
     /// </summary>
-    public EAnimationStateEventKey animationCallbackKey;
+    public EAnimationStateKey animationCallbackKey;
 
     /// <summary>
     /// Animator가 부착된 게임 오브젝트의 AnimationStateEventDisaptcher

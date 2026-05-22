@@ -3,7 +3,7 @@
 /// </summary>
 public interface IAnimationStateListener
 {
-    void OnStateEnter(EAnimationStateEventKey key);
+    void OnStateEnter(EAnimationStateKey key);
 
-    void OnStateExit(EAnimationStateEventKey key);
+    void OnStateExit(EAnimationStateKey key);
 }
