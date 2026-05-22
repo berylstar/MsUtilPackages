@@ -25,31 +25,38 @@ public class AnimationStateEventDispatcher : MonoBehaviour, IAnimationStateListe
         {
             OnExit?.Invoke();
         }
+
+        public void Clear()
+        {
+            OnEnter = null;
+            OnExit = null;
+        }
     }
 
     /// <summary>
-    /// 애니매이션 Key별 콜백 딕셔너리
+    /// 애니매이션 Key별 콜백 배열
     /// </summary>
-    private readonly Dictionary<EAnimationStateKey, StateEventCallbacks> _stateEventCallbacks = new();
+    private readonly StateEventCallbacks[] _stateEventCallbacks = new StateEventCallbacks[(int)EAnimationStateKey.MaxCount];
 
     /// <summary>
     /// Key로 Callbacks 반환
     /// </summary>
     private StateEventCallbacks GetOrCreateCallbacks(EAnimationStateKey key)
     {
-        if (_stateEventCallbacks.TryGetValue(key, out StateEventCallbacks callbacks) == false)
+        int stateIndex = (int)key;
+
+        if (_stateEventCallbacks[stateIndex] == null)
         {
-            callbacks = new StateEventCallbacks();
-            _stateEventCallbacks.Add(key, callbacks);
+            _stateEventCallbacks[stateIndex] = new StateEventCallbacks();
         }
 
-        return callbacks;
+        return _stateEventCallbacks[stateIndex];
     }
 
     /// <summary>
     /// 상태 진입시 콜백 추가
     /// </summary>
-    public void RegisterEnterCallback(EAnimationStateKey key, Action callback)
+    public void RegisterOnStateEnter(EAnimationStateKey key, Action callback)
     {
         if (callback == null)
             return;
@@ -60,7 +67,7 @@ public class AnimationStateEventDispatcher : MonoBehaviour, IAnimationStateListe
     /// <summary>
     /// 상태 탈출시 콜백 추가
     /// </summary>
-    public void RegisterExitCallback(EAnimationStateKey key, Action callback)
+    public void RegisterOnStateExit(EAnimationStateKey key, Action callback)
     {
         if (callback == null)
             return;
@@ -73,7 +80,10 @@ public class AnimationStateEventDispatcher : MonoBehaviour, IAnimationStateListe
     /// </summary>
     public void ClearAllCallbacks()
     {
-        _stateEventCallbacks.Clear();
+        for (int i = 0; i < (int)EAnimationStateKey.MaxCount; i++)
+        {
+            _stateEventCallbacks[i].Clear();
+        }
     }
 
     /// <summary>
@@ -81,9 +91,11 @@ public class AnimationStateEventDispatcher : MonoBehaviour, IAnimationStateListe
     /// </summary>
     void IAnimationStateListener.OnStateEnter(EAnimationStateKey key)
     {
-        if (_stateEventCallbacks.TryGetValue(key, out StateEventCallbacks callbacks))
+        int stateIndex = (int)key;
+
+        if (0 <= stateIndex && stateIndex < _stateEventCallbacks.Length)
         {
-            callbacks.InvokeOnEnter();
+            _stateEventCallbacks[stateIndex]?.InvokeOnEnter();
         }
     }
 
@@ -92,9 +104,11 @@ public class AnimationStateEventDispatcher : MonoBehaviour, IAnimationStateListe
     /// </summary>
     void IAnimationStateListener.OnStateExit(EAnimationStateKey key)
     {
-        if (_stateEventCallbacks.TryGetValue(key, out StateEventCallbacks callbacks))
+        int stateIndex = (int)key;
+
+        if (0 <= stateIndex && stateIndex < _stateEventCallbacks.Length)
         {
-            callbacks.InvokeOnExit();
+            _stateEventCallbacks[stateIndex]?.InvokeOnExit();
         }
     }
 }
