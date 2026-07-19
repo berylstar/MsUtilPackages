@@ -150,7 +150,7 @@ public static class ObjectPoolManager
         if (poolable == null)
             return;
 
-        if (poolable.IsUsing == false)
+        if (poolable.IsSpawned == false)
             return;
 
         if (_poolableDict.ContainsKey(poolable.PoolType))

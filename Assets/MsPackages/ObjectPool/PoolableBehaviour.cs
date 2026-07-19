@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 /// <summary>
@@ -6,8 +5,14 @@ using UnityEngine;
 /// </summary>
 public interface IPoolableCommander
 {
+    /// <summary>
+    /// 풀에서 꺼낼때 처리
+    /// </summary>
     void SetUsed();
 
+    /// <summary>
+    /// 풀로 되돌릴때 처리
+    /// </summary>
     void SetReleased();
 }
 
@@ -20,34 +25,23 @@ public class PoolableBehaviour : MonoBehaviour, IPoolableCommander
     [SerializeField] private MonoBehaviour mainComponent;
     public MonoBehaviour MainComponent => mainComponent;
 
-    ///// <summary>
-    ///// 풀에서 꺼낼때 처리
-    ///// </summary>
-    //public event Action OnGetFromPool;
-
-    ///// <summary>
-    ///// 풀로 되돌릴때 처리
-    ///// </summary>
-    //public event Action OnReturnToPool;
-
     /// <summary>
     /// 풀에서 꺼내 사용중인지 여부
     /// </summary>
-    public bool IsUsing { get; private set; }
+    public bool IsSpawned { get; private set; }
 
     /// <summary>
     /// 풀에서 꺼낼때 처리
     /// </summary>
     void IPoolableCommander.SetUsed()
     {
-        if (IsUsing)
+        if (IsSpawned)
             return;
 
-        IsUsing = true;
+        IsSpawned = true;
 
         this.gameObject.SetActive(true);
-
-        //OnGetFromPool?.Invoke();
+        (mainComponent as IPoolable)?.OnSpawned();
     }
 
     /// <summary>
@@ -55,14 +49,13 @@ public class PoolableBehaviour : MonoBehaviour, IPoolableCommander
     /// </summary>
     void IPoolableCommander.SetReleased()
     {
-        if (IsUsing == false)
+        if (IsSpawned == false)
             return;
 
-        IsUsing = false;
+        IsSpawned = false;
 
+        (mainComponent as IPoolable)?.OnDespawned();
         this.gameObject.SetActive(false);
-
-        //OnReturnToPool?.Invoke();
     }
 
     /// <summary>
