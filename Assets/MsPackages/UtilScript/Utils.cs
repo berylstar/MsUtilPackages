@@ -86,6 +86,20 @@ public static class Utils
     }
 
     /// <summary>
+    /// 게임 오브젝트의 레이어 확인
+    /// </summary>
+    public static bool IsLayer(GameObject contactedObject, int layer)
+    {
+        if (contactedObject == null)
+            return false;
+
+        if (layer < 0)
+            return false;
+
+        return contactedObject.layer == layer;
+    }
+
+    /// <summary>
     /// 자신 포함 및 자식 오브젝트에서 컴포넌트 탐색
     /// </summary>
     /// <param name="root">탐색을 시작할 기준 게임 오브젝트</param>

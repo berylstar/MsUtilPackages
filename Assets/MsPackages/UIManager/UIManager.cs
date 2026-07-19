@@ -17,22 +17,27 @@ public static class UIManager
     /// </summary>
     private static readonly Dictionary<Type, EUIType> _typeCache = new Dictionary<Type, EUIType>();
 
-    private static Transform _uiRoot;
-
     /// <summary>
     /// 씬에 배치되는 캔버스
     /// </summary>
-    public static Transform UIRoot
-    {
-        get
-        {
-            if (_uiRoot == null)
-            {
-                _uiRoot = GameObject.FindWithTag(TAG_UIROOT).transform;
-            }
+    public static Transform UIRoot { get; private set; }
 
-            return _uiRoot;
+    /// <summary>
+    /// 캔버스의 ScaleFactor
+    /// </summary>
+    public static float ScaleFactor { get; private set; }
+
+    /// <summary>
+    /// 초기화
+    /// </summary>
+    public static void Initialize()
+    {
+        if (UIRoot == null)
+        {
+            UIRoot = GameObject.FindWithTag(TAG_UIROOT).transform;
         }
+
+        ScaleFactor = UIRoot.GetComponent<Canvas>().scaleFactor;
     }
 
     /// <summary>
