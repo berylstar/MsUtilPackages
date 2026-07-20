@@ -3,6 +3,9 @@
 /// </summary>
 public enum EAnimationStateKey
 {
+    None = 0,
+    //--------------------
+    
     //--------------------
     MaxCount
 }
