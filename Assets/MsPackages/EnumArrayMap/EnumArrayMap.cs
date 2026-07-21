@@ -6,8 +6,7 @@ using System.Runtime.CompilerServices;
 /// <summary>
 /// 0 이상의 Int32 기반 열거형 값을 인덱스로 사용하여 값을 배열에 저장하는 컬렉션입니다.
 /// </summary>
-public sealed class EnumArrayMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
-    where TKey : unmanaged, Enum
+public sealed class EnumArrayMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> where TKey : unmanaged, Enum
 {
     private const int MaximumCapacity = 1_048_576;
 
@@ -215,8 +214,7 @@ public sealed class EnumArrayMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, 
         if (EnumArrayMapKeyInfo<TKey>.RequiredCapacity > MaximumCapacity)
         {
             throw new NotSupportedException(
-                $"열거형 '{typeof(TKey).Name}'에는 {EnumArrayMapKeyInfo<TKey>.RequiredCapacity}개의 슬롯이 필요합니다. " +
-                "딕셔너리 기반 컬렉션을 사용하세요.");
+                $"열거형 '{typeof(TKey).Name}'에는 {EnumArrayMapKeyInfo<TKey>.RequiredCapacity}개의 슬롯이 필요합니다. 딕셔너리 기반 컬렉션을 사용하세요.");
         }
 
         if (EnumArrayMapKeyInfo<TKey>.IsHighlySparse)
@@ -234,26 +232,22 @@ public sealed class EnumArrayMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, 
         if (EnumArrayMapKeyInfo<TKey>.HasInt32UnderlyingType == false)
         {
             throw new NotSupportedException(
-                "EnumArrayMap은 Int32 기반 열거형만 지원합니다. " +
-                $"'{typeof(TKey).Name}'의 기반형은 '{EnumArrayMapKeyInfo<TKey>.UnderlyingType.Name}'입니다.");
+                $"EnumArrayMap은 Int32 기반 열거형만 지원합니다. '{typeof(TKey).Name}'의 기반형은 '{EnumArrayMapKeyInfo<TKey>.UnderlyingType.Name}'입니다.");
         }
 
         if (EnumArrayMapKeyInfo<TKey>.IsFlags)
         {
-            throw new NotSupportedException(
-                $"Flags 열거형 '{typeof(TKey).Name}'은(는) 지원하지 않습니다.");
+            throw new NotSupportedException($"Flags 열거형 '{typeof(TKey).Name}'은(는) 지원하지 않습니다.");
         }
 
         if (EnumArrayMapKeyInfo<TKey>.HasNegativeValue)
         {
-            throw new NotSupportedException(
-                $"열거형 '{typeof(TKey).Name}'에 음수 값이 포함되어 있어 지원하지 않습니다.");
+            throw new NotSupportedException($"열거형 '{typeof(TKey).Name}'에 음수 값이 포함되어 있어 지원하지 않습니다.");
         }
     }
 }
 
-internal static class EnumArrayMapKeyInfo<TKey>
-    where TKey : unmanaged, Enum
+internal static class EnumArrayMapKeyInfo<TKey> where TKey : unmanaged, Enum
 {
     private const int SparsityCheckThreshold = 256;
     private const int MaximumAutomaticSparsityRatio = 8;
@@ -295,9 +289,7 @@ internal static class EnumArrayMapKeyInfo<TKey>
         }
 
         RequiredCapacity = (long)maximumValue + 1L;
-        IsHighlySparse =
-            RequiredCapacity > SparsityCheckThreshold &&
-            RequiredCapacity > (long)Math.Max(1, uniqueNonNegativeValues.Count) * MaximumAutomaticSparsityRatio;
+        IsHighlySparse = RequiredCapacity > SparsityCheckThreshold && RequiredCapacity > (long)Math.Max(1, uniqueNonNegativeValues.Count) * MaximumAutomaticSparsityRatio;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
